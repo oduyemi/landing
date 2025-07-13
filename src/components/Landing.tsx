@@ -2,6 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Inbox, Settings, CheckCircle2 } from "lucide-react";
+import { NotifyDialog } from "./dialog/NotifyDialog";
 
 const features = [
   {
@@ -24,14 +25,10 @@ const features = [
   },
 ];
 
-// Animation Variants
 const containerVariants = {
   hidden: {},
   show: {
-    transition: {
-      staggerChildren: 0.2,
-      delayChildren: 0.3,
-    },
+    transition: { staggerChildren: 0.2, delayChildren: 0.3 },
   },
 };
 
@@ -43,6 +40,7 @@ const itemVariants = {
 export const Landing: React.FC = () => {
   return (
     <section className="landingpage">
+      {/* Hero Section */}
       <motion.div
         className="hero"
         initial={{ opacity: 0, y: -30 }}
@@ -63,6 +61,7 @@ export const Landing: React.FC = () => {
         </motion.p>
       </motion.div>
 
+      {/* Features Section */}
       <motion.div
         className="featureGrid"
         variants={containerVariants}
@@ -83,6 +82,7 @@ export const Landing: React.FC = () => {
         ))}
       </motion.div>
 
+      {/* CTA Section with Notify Dialog */}
       <motion.div
         className="ctaSection"
         initial={{ opacity: 0, y: 40 }}
@@ -91,13 +91,7 @@ export const Landing: React.FC = () => {
         viewport={{ once: true }}
       >
         <p className="notifyText">Want to be the first to try it?</p>
-        <a
-          href="mailto:hello@oduyemi.dev"
-          className="notifyButton"
-        >
-          <Inbox size={18} />
-          Notify Me
-        </a>
+        <NotifyDialog />
       </motion.div>
     </section>
   );
