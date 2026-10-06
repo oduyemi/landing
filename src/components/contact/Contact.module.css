@@ -1,0 +1,103 @@
+.contactSection {
+  padding: 2rem 2rem;
+  background: #fff;
+  color: #111;
+  text-align: center;
+}
+
+.heading {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.5px;
+}
+
+.subheading {
+  font-size: 1.125rem;
+  color: #666;
+  margin-bottom: 2.5rem;
+}
+
+.infoGrid {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: 1fr;
+  margin-bottom: 3rem;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.card {
+  background: #f7f7f7;
+  border: 1px solid #ddd;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.035);
+}
+
+.card h3 {
+  font-size: 1.125rem;
+  margin-top: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.card p {
+  font-size: 1rem;
+  color: #444;
+}
+
+.icon {
+  background: #e4e4e4;
+  border-radius: 50%;
+  padding: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #111;
+}
+
+.form {
+  max-width: 700px;
+  margin: 0 auto;
+  display: grid;
+  gap: 1rem;
+}
+
+.form input,
+.form textarea {
+  padding: 0.9rem 1.2rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.75rem;
+  background: #fafafa;
+  color: #111;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.form input:focus,
+.form textarea:focus {
+  border-color: #333;
+}
+
+.form button {
+  padding: 0.9rem 1.2rem;
+  font-size: 1rem;
+  background: #111;
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.form button:hover {
+  background: #333;
+}
+
+@media (min-width: 768px) {
+  .infoGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

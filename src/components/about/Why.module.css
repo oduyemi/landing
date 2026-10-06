@@ -1,0 +1,80 @@
+.reasonSection {
+  padding: 5rem 2rem;
+  background: #fff;
+  color: #111;
+  text-align: center;
+}
+
+.heading {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.5px;
+}
+
+.subheading {
+  font-size: 1.125rem;
+  color: #666;
+  margin-bottom: 2.5rem;
+}
+
+.grid {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: 1fr;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.card {
+  background: #f7f7f7;
+  border: 1px solid #ddd;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.035);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
+}
+
+.card h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111;
+  margin-top: 1rem;
+}
+
+.card p {
+  font-size: 1rem;
+  color: #444;
+  line-height: 1.6;
+  margin-top: 0.5rem;
+}
+
+.icon {
+  background: #e4e4e4;
+  border-radius: 50%;
+  padding: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #111;
+}
+
+.quote {
+  margin-top: 3rem;
+  font-style: italic;
+  color: #333;
+  font-size: 1.05rem;
+  opacity: 0.85;
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

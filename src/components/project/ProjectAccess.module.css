@@ -1,0 +1,80 @@
+.accessSection {
+  background-color: #f9f9f9;
+  padding: 5rem 2rem;
+  text-align: center;
+  border-top: 1px solid #e5e5e5;
+}
+
+.accessBox {
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.3s ease;
+}
+
+.accessBox:hover {
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+}
+
+.heading {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #111;
+}
+
+.heading span {
+  color: #555;
+  font-weight: 600;
+}
+
+.sub {
+  font-size: 1.1rem;
+  color: #444;
+  margin-bottom: 2.5rem;
+  line-height: 1.6;
+}
+
+.buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.cta,
+.ctaAlt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.5rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+.cta {
+  background-color: #111;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.cta:hover {
+  background-color: #000;
+}
+
+.ctaAlt {
+  background-color: transparent;
+  color: #111;
+  border: 1.5px solid #111;
+}
+
+.ctaAlt:hover {
+  background-color: #111;
+  color: #fff;
+}
