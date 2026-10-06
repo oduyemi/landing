@@ -10,7 +10,6 @@
     "seed:admin": "tsx scripts/seed-admin.ts"
   },
   "dependencies": {
-    "@next/env": "^16.3.8",
     "@radix-ui/react-dialog": "^1.1.14",
     "@tailwindcss/postcss": "^4.3.3",
     "@tanstack/react-query": "^5.104.0",
@@ -18,10 +17,8 @@
     "@types/mongoose": "^5.11.96",
     "axios": "^1.20.0",
     "bcryptjs": "^3.0.3",
-    "cloudinary": "^2.11.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.43.0",
-    "jose": "^6.2.12",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.525.0",
     "mongoose": "^9.10.1",
@@ -43,7 +40,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.5",
-    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }
