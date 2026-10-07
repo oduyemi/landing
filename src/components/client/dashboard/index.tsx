@@ -111,7 +111,7 @@ export function ClientDashboard() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <h1 className="text-[14px] font-semibold tracking-[-0.02em] text-[#181818]">
-                Good morning
+                Hello
               </h1>
 
               <p className="mt-1 text-[9px] text-[#929292]">

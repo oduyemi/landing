@@ -156,14 +156,16 @@ export const Sidebar = () => {
                   exit={{ opacity: 0, x: -5 }}
                   transition={{ duration: 0.15 }}
                 >
-                  <Image
-                    src="/images/logo/logo_black.svg"
-                    alt="Site logo"
-                    width={102}
-                    height={28}
-                    className="h-auto w-[92px]"
-                    priority
-                  />
+                  <Link href="/">
+                    <Image
+                      src="/images/logo/logo_black.svg"
+                      alt="Site logo"
+                      width={102}
+                      height={28}
+                      className="h-auto w-[92px]"
+                      priority
+                    />
+                  </Link>
                 </motion.div>
               ) : (
                 <motion.div
@@ -174,9 +176,11 @@ export const Sidebar = () => {
                   transition={{ duration: 0.15 }}
                   className="flex h-8 w-8 items-center justify-center rounded-[5px] bg-[#111]"
                 >
-                  <span className="text-[11px] font-semibold tracking-[-0.04em] text-white">
-                    O
-                  </span>
+                  <Link href="/">
+                    <span className="text-[11px] font-semibold tracking-[-0.04em] text-white">
+                      O
+                    </span>
+                  </Link>
                 </motion.div>
               )}
             </AnimatePresence>
