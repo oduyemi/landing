@@ -27,7 +27,7 @@ const FILE_LIMITS: Record<FileCategory, number> = {
 
 interface RouteContext {
   params: Promise<{
-    projectId: string;
+    id: string;
   }>;
 }
 
@@ -107,9 +107,9 @@ export async function GET(
         { status: 401 }
       );
     }
-    const { projectId } = await context.params;
+    const { id } = await context.params;
     if (
-      !mongoose.Types.ObjectId.isValid(projectId)
+      !mongoose.Types.ObjectId.isValid(id)
     ) {
       return NextResponse.json(
         { error: "Invalid project ID" },
@@ -117,7 +117,7 @@ export async function GET(
       );
     }
 
-    const project = await Project.findById(projectId)
+    const project = await Project.findById(id)
       .select("_id title client cloudinaryFolder")
       .lean();
 
@@ -140,7 +140,7 @@ export async function GET(
     }
 
     const files = await File.find({
-      project: projectId,
+      project: id,
     })
       .populate(
         "uploadedBy",
@@ -198,10 +198,10 @@ export async function POST(
       return roleError;
     }
 
-    const { projectId } = await context.params;
+    const { id } = await context.params;
 
     if (
-      !mongoose.Types.ObjectId.isValid(projectId)
+      !mongoose.Types.ObjectId.isValid(id)
     ) {
       return NextResponse.json(
         { error: "Invalid project ID" },
@@ -209,7 +209,7 @@ export async function POST(
       );
     }
 
-    const project = await Project.findById(projectId)
+    const project = await Project.findById(id)
       .select(
         "_id title client cloudinaryFolder"
       )
