@@ -1,5 +1,4 @@
 "use client";
-
 import {
   FolderKanban,
   Search,
@@ -12,30 +11,8 @@ import {
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { ProjectCard } from "@/components/client/projects/ProjectCard";
+import { Project, ProjectStatus } from "@/components/client/projects/types";
 
-type ProjectStatus =
-  | "Planning"
-  | "In Progress"
-  | "Completed"
-  | "On Hold"
-  | "Cancelled";
-
-interface Project {
-  id: string;
-  title: string;
-  type: string;
-  image?: string | null;
-  progress: number;
-  status: ProjectStatus;
-  startDate: string;
-  deadline: string;
-  description: string;
-  client: {
-    id?: string;
-    name: string;
-    email: string;
-  };
-}
 
 interface ApiProject {
   _id: string;
@@ -51,6 +28,7 @@ interface ApiProject {
     _id?: string;
     fname?: string;
     lname?: string;
+    image?: string | null;
     email?: string;
   } | null;
 }
@@ -107,13 +85,12 @@ export default function ProjectsPage() {
           status: project.status,
           startDate: project.startDate,
           deadline: project.deadline,
-          description: project.description,
+          description: project.description ?? "",
           client: {
             id: project.client?._id,
-            name:
-              `${project.client?.fname ?? ""} ${
-                project.client?.lname ?? ""
-              }`.trim() || "Client",
+            fname: project.client?.fname ?? "",
+            lname: project.client?.lname ?? "",
+            image: project.client?.image ?? undefined,
             email: project.client?.email ?? "",
           },
         }));
@@ -180,14 +157,8 @@ export default function ProjectsPage() {
 
   return (
     <main className="relative min-h-full overflow-hidden bg-[#fafafa]">
-      {/* Subtle background detail */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[260px] bg-gradient-to-b from-white via-white/70 to-transparent" />
-
       <div className="relative mx-auto max-w-[1180px] px-5 py-7 sm:px-7 sm:py-9 lg:px-9 lg:py-10">
-
-        {/* =====================================================
-            PAGE HEADER
-        ====================================================== */}
         <motion.header
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -246,9 +217,6 @@ export default function ProjectsPage() {
           </div>
         </motion.header>
 
-        {/* =====================================================
-            STATS
-        ====================================================== */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -279,9 +247,6 @@ export default function ProjectsPage() {
           />
         </motion.div>
 
-        {/* =====================================================
-            FILTERS
-        ====================================================== */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -335,9 +300,6 @@ export default function ProjectsPage() {
           </div>
         </motion.div>
 
-        {/* =====================================================
-            LOADING
-        ====================================================== */}
         {loading && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -361,9 +323,6 @@ export default function ProjectsPage() {
           </motion.div>
         )}
 
-        {/* =====================================================
-            ERROR
-        ====================================================== */}
         {!loading && error && (
           <motion.div
             initial={{ opacity: 0, y: 6 }}
@@ -386,10 +345,6 @@ export default function ProjectsPage() {
             </p>
           </motion.div>
         )}
-
-        {/* =====================================================
-            PROJECT CONTENT
-        ====================================================== */}
         {!loading && !error && (
           <motion.div
             initial="hidden"
@@ -403,9 +358,6 @@ export default function ProjectsPage() {
               },
             }}
           >
-            {/* =================================================
-                CURRENT PROJECTS
-            ================================================== */}
             {filteredActive.length > 0 && (
               <motion.section
                 variants={{
@@ -473,9 +425,6 @@ export default function ProjectsPage() {
               </motion.section>
             )}
 
-            {/* =================================================
-                COMPLETED
-            ================================================== */}
             {filteredCompleted.length > 0 && (
               <motion.section
                 variants={{
@@ -541,9 +490,6 @@ export default function ProjectsPage() {
               </motion.section>
             )}
 
-            {/* =================================================
-                EMPTY
-            ================================================== */}
             {filteredProjects.length === 0 && (
               <motion.div
                 initial={{
@@ -596,9 +542,6 @@ export default function ProjectsPage() {
               </motion.div>
             )}
 
-            {/* =================================================
-                WORKSPACE FOOTER DETAIL
-            ================================================== */}
             {projects.length > 0 && (
               <motion.div
                 initial={{
@@ -638,10 +581,6 @@ export default function ProjectsPage() {
   );
 }
 
-/* ============================================================
-   SECTION HEADING
-============================================================ */
-
 function SectionHeading({
   title,
   count,
@@ -671,10 +610,6 @@ function SectionHeading({
     </div>
   );
 }
-
-/* ============================================================
-   STAT CARD
-============================================================ */
 
 function Stat({
   icon: Icon,

@@ -1,20 +1,25 @@
 export type ProjectStatus =
+  | "Planning"
   | "In Progress"
   | "Completed"
-  | "On Hold";
+  | "On Hold"
+  | "Cancelled";
 
 export interface Project {
   id: string;
   title: string;
   type: string;
-  image: string;
+  image?: string | null;
   progress: number;
   status: ProjectStatus;
   startDate: string;
   deadline: string;
   description: string;
   client: {
-    name: string;
+    id?: string;
+    fname: string;
+    lname: string;
+    image?: string;
     email: string;
   };
 }

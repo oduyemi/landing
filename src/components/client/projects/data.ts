@@ -15,7 +15,8 @@ export const projects: Project[] = [
     description:
       "A modern astrology platform with an immersive visual experience, personalized readings and intuitive navigation.",
     client: {
-      name: "Charles M.",
+      fname: "Charles",
+      lname: ".M",
       email: "charles@client-company.com",
     },
   },
@@ -32,7 +33,8 @@ export const projects: Project[] = [
     description:
       "A modern, responsive website for Global Crossfire Church with a clean, engaging design, CMS, event integration and a seamless media experience.",
     client: {
-      name: "Charles M.",
+      fname: "Charles",
+      lname: ".M",
       email: "charles@client-company.com",
     },
   },
@@ -49,7 +51,8 @@ export const projects: Project[] = [
     description:
       "A modern digital experience designed around a clean and accessible product journey.",
     client: {
-      name: "Charles M.",
+      fname: "Charles",
+      lname: ".M",
       email: "charles@client-company.com",
     },
   },
@@ -68,7 +71,8 @@ export const projects: Project[] = [
     description:
       "A completed digital product experience.",
     client: {
-      name: "Charles M.",
+      fname: "Charles",
+      lname: ".M",
       email: "charles@client-company.com",
     },
   },
@@ -85,7 +89,8 @@ export const projects: Project[] = [
     description:
       "A completed web project.",
     client: {
-      name: "Charles M.",
+      fname: "Charles",
+      lname: ".M",
       email: "charles@client-company.com",
     },
   },
@@ -102,7 +107,8 @@ export const projects: Project[] = [
     description:
       "A mentorship and developer growth platform.",
     client: {
-      name: "Charles M.",
+      fname: "Charles",
+      lname: ".M",
       email: "charles@client-company.com",
     },
   },
@@ -118,7 +124,8 @@ export const projects: Project[] = [
     deadline: "Dec 20, 2025",
     description: "A completed web project.",
     client: {
-      name: "Charles M.",
+      fname: "Charles",
+      lname: ".M",
       email: "charles@client-company.com",
     },
   },
@@ -134,7 +141,8 @@ export const projects: Project[] = [
     deadline: "Nov 15, 2025",
     description: "A completed web project.",
     client: {
-      name: "Charles M.",
+      fname: "Charles",
+      lname: ".M",
       email: "charles@client-company.com",
     },
   },
@@ -150,7 +158,8 @@ export const projects: Project[] = [
     deadline: "Sep 10, 2025",
     description: "A completed web project.",
     client: {
-      name: "Charles M.",
+      fname: "Charles",
+      lname: ".M",
       email: "charles@client-company.com",
     },
   },
@@ -166,7 +175,8 @@ export const projects: Project[] = [
     deadline: "Jul 15, 2025",
     description: "A completed web project.",
     client: {
-      name: "Charles M.",
+      fname: "Charles",
+      lname: ".M",
       email: "charles@client-company.com",
     },
   },
@@ -183,7 +193,8 @@ export const projects: Project[] = [
     description:
       "A Slack integration for automated standup workflows.",
     client: {
-      name: "Charles M.",
+      fname: "Charles",
+      lname: ".M",
       email: "charles@client-company.com",
     },
   },
@@ -200,7 +211,8 @@ export const projects: Project[] = [
     description:
       "An AI-powered conversational application.",
     client: {
-      name: "Charles M.",
+      fname: "Charles",
+      lname: ".M",
       email: "charles@client-company.com",
     },
   },

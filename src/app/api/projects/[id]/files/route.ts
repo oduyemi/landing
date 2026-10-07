@@ -233,13 +233,16 @@ export async function POST(
     }
 
     const formData = await req.formData();
-    const file = formData.get("file");
+    const fileValue = formData.get("file");
     const categoryValue = formData.get("category");
     const assetTypeValue = formData.get("assetType");
     const descriptionValue = formData.get("description");
-
     const orderValue = formData.get("order");
-    if (!(file instanceof File)) {
+    
+    if (
+      !fileValue ||
+      typeof fileValue === "string"
+    ) {
       return NextResponse.json(
         {
           error:
@@ -248,7 +251,9 @@ export async function POST(
         { status: 400 }
       );
     }
-
+    
+    const file = fileValue;
+    
     if (file.size === 0) {
       return NextResponse.json(
         {

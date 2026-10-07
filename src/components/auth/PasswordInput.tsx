@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
-
 interface PasswordInputProps {
   label: string;
   id: string;
@@ -12,6 +11,7 @@ interface PasswordInputProps {
     event: React.ChangeEvent<HTMLInputElement>
   ) => void;
   required?: boolean;
+  disabled?: boolean;
 }
 
 export const PasswordInput = ({
@@ -21,6 +21,7 @@ export const PasswordInput = ({
   value,
   onChange,
   required,
+  disabled = false,
 }: PasswordInputProps) => {
   const [visible, setVisible] = useState(false);
 
@@ -41,16 +42,18 @@ export const PasswordInput = ({
           value={value}
           onChange={onChange}
           required={required}
-          className="h-9 w-full rounded-[3px] border border-neutral-200 bg-white px-3 pr-9 text-[9px] text-black outline-none transition-all placeholder:text-neutral-300 focus:border-neutral-400 focus:ring-1 focus:ring-neutral-100"
+          disabled={disabled}
+          className="h-9 w-full rounded-[3px] border border-neutral-200 bg-white px-3 pr-9 text-[9px] text-black outline-none transition-all placeholder:text-neutral-300 focus:border-neutral-400 focus:ring-1 focus:ring-neutral-100 disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:opacity-60"
         />
 
         <button
           type="button"
           onClick={() => setVisible((current) => !current)}
+          disabled={disabled}
           aria-label={
             visible ? "Hide password" : "Show password"
           }
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors hover:text-black"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors hover:text-black disabled:pointer-events-none disabled:opacity-50"
         >
           {visible ? (
             <EyeOff size={12} strokeWidth={1.5} />

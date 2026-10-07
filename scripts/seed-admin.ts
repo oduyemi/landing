@@ -1,12 +1,9 @@
-import { loadEnvConfig } from "@next/env";
+import dotenv from "dotenv";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import User from "../src/models/user.model";
 
-
-loadEnvConfig(process.cwd());
-
-
+dotenv.config({ path: ".env.local" });
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
@@ -23,19 +20,19 @@ async function seedAdmin() {
 
   if (!ADMIN_EMAIL) {
     throw new Error(
-      "SEED_ADMIN_EMAIL is not defined. Check your .env.local file."
+      "ADMIN_EMAIL is not defined. Check your .env.local file."
     );
   }
 
   if (!ADMIN_PASSWORD) {
     throw new Error(
-      "SEED_ADMIN_PASSWORD is not defined. Check your .env.local file."
+      "ADMIN_PASSWORD is not defined. Check your .env.local file."
     );
   }
 
   if (ADMIN_PASSWORD.length < 8) {
     throw new Error(
-      "SEED_ADMIN_PASSWORD must be at least 8 characters long."
+      "ADMIN_PASSWORD must be at least 8 characters long."
     );
   }
 
@@ -66,8 +63,8 @@ async function seedAdmin() {
     const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 12);
 
     const admin = await User.create({
-      fname: ADMIN_FNAME.trim(),
-      lname: ADMIN_LNAME.trim(),
+      fname: ADMIN_FNAME?.trim() || "Admin",
+      lname: ADMIN_LNAME?.trim() || "User",
       email,
       password: hashedPassword,
       role: "admin",
