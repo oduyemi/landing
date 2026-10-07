@@ -1,14 +1,8 @@
 "use client";
-
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  ArrowRight,
-  FolderOpen,
-  Plus,
-} from "lucide-react";
-
+import { ArrowRight, FolderOpen, Plus } from "lucide-react";
 import { DashboardHeader } from "@/components/client/layout/Header";
 import { StatCard } from "@/components/client/layout/StatsCard";
 import { ProjectCard } from "@/components/client/layout/ProjectCard";

@@ -6,9 +6,7 @@ import { dbConnect } from "@/utils/db";
 export async function GET() {
   try {
     await dbConnect();
-
     const user = await getCurrentUser();
-
     if (!user) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -17,7 +15,6 @@ export async function GET() {
     }
 
     const roleError = requireRole(user, ["admin"]);
-
     if (roleError) {
       return roleError;
     }
@@ -26,14 +23,12 @@ export async function GET() {
       .select("-password")
       .sort({ createdAt: -1 })
       .lean();
-
     return NextResponse.json({
       users,
       count: users.length,
     });
   } catch (error) {
     console.error("GET USERS ERROR:", error);
-
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -20,9 +20,7 @@ export async function GET(
 ) {
   try {
     await dbConnect();
-
     const currentUser = await getCurrentUser();
-
     if (!currentUser) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -31,13 +29,11 @@ export async function GET(
     }
 
     const roleError = requireRole(currentUser, ["admin"]);
-
     if (roleError) {
       return roleError;
     }
 
     const { id } = await context.params;
-
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { error: "Invalid user ID" },

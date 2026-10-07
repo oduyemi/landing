@@ -17,12 +17,9 @@ import { sendEmailWithRetry } from "@/helper/emailLogic";
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
-
     const { searchParams } = new URL(req.url);
-
     const status = searchParams.get("status");
     const topic = searchParams.get("topic");
-
     const filter: Record<string, string> = {};
 
     if (status) {
