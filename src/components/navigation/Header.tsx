@@ -70,10 +70,10 @@ export const Header = () => {
           {/* Mobile */}
           <div className="flex items-center gap-2 md:hidden">
             <Link
-              href="/portal"
+              href="/client"
               className="inline-flex h-8 items-center justify-center rounded-[5px] bg-black px-3.5 text-[9px] font-semibold text-white"
             >
-              Client Portal
+              Client Dashboard
             </Link>
 
             <button
