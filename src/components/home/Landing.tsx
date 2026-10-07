@@ -162,7 +162,7 @@ export const Hero = () => {
               href="/client"
               className="group inline-flex h-10 items-center gap-2 rounded-[5px] bg-black px-4 text-[9px] font-semibold text-white shadow-[0_2px_5px_rgba(0,0,0,0.1)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-neutral-800 hover:shadow-[0_8px_20px_rgba(0,0,0,0.12)]"
             >
-              <span>Go to Client Portal</span>
+              <span>Access Your Portal</span>
 
               <ArrowUpRight
                 size={12}
@@ -172,7 +172,7 @@ export const Hero = () => {
             </Link>
 
             <Link
-              href="mailto:hello@oduyemi.dev"
+              href="/contact"
               className="group inline-flex h-10 items-center justify-center gap-2 rounded-[5px] border border-neutral-200 bg-white px-4 text-[9px] font-semibold text-black transition-all duration-300 hover:-translate-y-0.5 hover:border-neutral-300 hover:bg-neutral-50"
             >
               Get in Touch
