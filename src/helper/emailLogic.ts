@@ -4,7 +4,7 @@ export const sendEmailWithRetry = async (
   to: string,
   subject: string,
   html: string,
-  retries = 3
+  retries = 2
 ) => {
   let attempt = 0;
 
@@ -12,10 +12,16 @@ export const sendEmailWithRetry = async (
     try {
       await sendEmail(to, subject, html);
       return;
-    } catch (err) {
+    } catch (error) {
       attempt++;
-      if (attempt >= retries) throw err;
-      await new Promise(r => setTimeout(r, 1500));
+
+      if (attempt >= retries) {
+        throw error;
+      }
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000)
+      );
     }
   }
 };
