@@ -2,11 +2,7 @@
 import { motion } from "framer-motion";
 import { ConversationHeader } from "./ConversationHeader";
 import { MessageComposer } from "./Composer";
-
-import type {
-  ConversationItem,
-  ChatMessage,
-} from "./index";
+import type {ConversationItem, ChatMessage} from "./index";
 
 interface ConversationProps {
   conversation: ConversationItem;
@@ -70,9 +66,9 @@ export const Conversation = ({
                 <div className="h-px flex-1 bg-neutral-100" />
               </div>
 
-              <div className="space-y-7">
-                {messages.map(
-                  (message, index) => {
+                <div className="space-y-7">
+                  {[...messages].reverse().map(
+                    (message, index) => {
                     const isCurrentUser =
                       message.senderId ===
                       currentUserId;
