@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const temporaryCode = crypto.randomBytes(8).toString("hex");
+    const temporaryCode = crypto.randomBytes(4).toString("hex");
     const hashedPassword = await bcrypt.hash(
       temporaryCode,
       12
