@@ -240,16 +240,16 @@ export default function ProjectsPage() {
           className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"
         >
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#eaeae7] bg-white/80 px-3 py-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+            {/* <div className="inline-flex items-center gap-2 rounded-full border border-[#eaeae7] bg-white/80 px-3 py-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#777] opacity-20" />
                 <span className="relative h-2 w-2 rounded-full bg-[#555]" />
               </span>
 
-              {/* <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#777]">
+              <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#777]">
                 Client workspace
-              </span> */}
-            </div>
+              </span>
+            </div> */}
 
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <h1 className="text-[30px] font-semibold tracking-[-0.065em] text-[#171717] sm:text-[36px]">

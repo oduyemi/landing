@@ -1,12 +1,9 @@
 "use client";
-
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
 import { useAuth } from "@/context/AuthContext";
-
 import { AuthBrand } from "./Brand";
 import { AuthFooter } from "./Footer";
 import { AuthInput } from "./Input";
@@ -14,14 +11,10 @@ import { PasswordInput } from "./PasswordInput";
 
 export const LoginForm = () => {
   const router = useRouter();
-
   const { login } = useAuth();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [error, setError] = useState("");
-
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (
@@ -59,9 +52,6 @@ export const LoginForm = () => {
         return;
       }
 
-      /**
-       * Role-based destination.
-       */
       if (result.user.role === "admin") {
         router.replace("/admin");
         return;
