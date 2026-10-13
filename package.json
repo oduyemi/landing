@@ -10,6 +10,7 @@
     "seed:admin": "tsx scripts/seed-admin.ts"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.3.4",
     "@radix-ui/react-dialog": "^1.1.14",
     "@tailwindcss/postcss": "^4.3.3",
     "@tanstack/react-query": "^5.104.0",

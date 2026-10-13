@@ -66,7 +66,7 @@ const notificationSchema = new Schema<INotification>(
   
         task: {
           type: Schema.Types.ObjectId,
-          ref: "ProjectTask",
+          ref: "Task",
           default: null,
         },
   
@@ -78,7 +78,7 @@ const notificationSchema = new Schema<INotification>(
   
         file: {
           type: Schema.Types.ObjectId,
-          ref: "ProjectFile",
+          ref: "File",
           default: null,
         },
   

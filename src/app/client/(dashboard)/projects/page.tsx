@@ -5,14 +5,20 @@ import {
   CheckCircle2,
   Clock3,
   LoaderCircle,
-  ArrowUpRight,
-  Sparkles,
+  RefreshCw,
+  Layers3,
+  CircleDot,
+  Plus,
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { motion, type Variants } from "framer-motion";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProjectCard } from "@/components/client/projects/ProjectCard";
 import { Project, ProjectStatus } from "@/components/client/projects/types";
+import ProjectSearch from "@/components/client/dashboard/Search";
+import ProjectActionDialogs from "@/components/client/projects/ActionDialogs";
 
+type UserRole = "user" | "admin";
 
 interface ApiProject {
   _id: string;
@@ -35,99 +41,156 @@ interface ApiProject {
 
 type Filter = "All" | "In Progress" | "Completed";
 
-const filters: Filter[] = [
-  "All",
-  "In Progress",
-  "Completed",
-];
+const filters: Filter[] = ["All", "In Progress", "Completed"];
 
 const pageEase = [0.22, 1, 0.36, 1] as const;
 
+const sectionVariants: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.45,
+      ease: pageEase,
+    },
+  },
+};
+
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.45,
+      ease: pageEase,
+    },
+  },
+};
+
 export default function ProjectsPage() {
+  const [role, setRole] = useState<UserRole | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [filter, setFilter] = useState<Filter>("All");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const fetchProjects = useCallback(async (signal?: AbortSignal) => {
+    try {
+      setLoading(true);
+      setError("");
+      const response = await fetch("/api/projects", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+        signal,
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to load projects.");
+      }
+
+      const normalizedProjects: Project[] = (
+        data.projects ?? []
+      ).map((project: ApiProject) => ({
+        id: project._id,
+        title: project.title,
+        type: project.type,
+        image: project.image ?? null,
+        progress: project.progress,
+        status: project.status,
+        startDate: project.startDate,
+        deadline: project.deadline,
+        description: project.description ?? "",
+        client: {
+          id: project.client?._id,
+          fname: project.client?.fname ?? "",
+          lname: project.client?.lname ?? "",
+          image: project.client?.image ?? undefined,
+          email: project.client?.email ?? "",
+        },
+      }));
+
+      setProjects(normalizedProjects);
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return;
+      }
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load projects."
+      );
+    } finally {
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
+    }
+  }, []);
+  
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
 
-    async function fetchProjects() {
+    async function fetchSession() {
       try {
-        setLoading(true);
-        setError("");
-
-        const response = await fetch("/api/projects", {
-          method: "GET",
+        const response = await fetch("/api/auth/me", {
           credentials: "include",
           cache: "no-store",
+          signal: controller.signal,
         });
 
-        const data = await response.json();
-
         if (!response.ok) {
-          throw new Error(
-            data?.error || "Failed to load projects."
-          );
+          setRole(null);
+          return;
         }
 
-        if (cancelled) return;
+        const data = await response.json();
+        const sessionRole = data?.user?.role;
 
-        const normalizedProjects: Project[] = (
-          data.projects ?? []
-        ).map((project: ApiProject) => ({
-          id: project._id,
-          title: project.title,
-          type: project.type,
-          image: project.image ?? null,
-          progress: project.progress,
-          status: project.status,
-          startDate: project.startDate,
-          deadline: project.deadline,
-          description: project.description ?? "",
-          client: {
-            id: project.client?._id,
-            fname: project.client?.fname ?? "",
-            lname: project.client?.lname ?? "",
-            image: project.client?.image ?? undefined,
-            email: project.client?.email ?? "",
-          },
-        }));
-
-        setProjects(normalizedProjects);
-      } catch (err) {
-        if (cancelled) return;
-
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load projects."
+        setRole(
+          sessionRole === "admin" || sessionRole === "user"
+            ? sessionRole
+            : null
         );
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
         }
+
+        console.error("Failed to load the current user:", error);
+        setRole(null);
       }
     }
 
-    fetchProjects();
+    void fetchSession();
 
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, []);
 
-  const completedProjects = projects.filter(
-    (project) => project.status === "Completed"
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetchProjects(controller.signal);
+
+    return () => controller.abort();
+  }, [fetchProjects]);
+
+  const completedProjects = useMemo(
+    () => projects.filter((project) => project.status === "Completed"),
+    [projects]
   );
 
-  const inProgressProjects = projects.filter(
-    (project) => project.status === "In Progress"
+  const inProgressProjects = useMemo(
+    () => projects.filter((project) => project.status === "In Progress"),
+    [projects]
   );
 
-  const activeProjects = projects.filter(
-    (project) => project.status !== "Completed"
+  const activeProjects = useMemo(
+    () => projects.filter((project) => project.status !== "Completed"),
+    [projects]
   );
 
   const filteredProjects = useMemo(() => {
@@ -135,8 +198,7 @@ export default function ProjectsPage() {
 
     return projects.filter((project) => {
       const matchesFilter =
-        filter === "All" ||
-        project.status === filter;
+        filter === "All" || project.status === filter;
 
       const matchesSearch =
         !query ||
@@ -155,133 +217,174 @@ export default function ProjectsPage() {
     (project) => project.status === "Completed"
   );
 
-  return (
-    <main className="relative min-h-full overflow-hidden bg-[#fafafa]">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[260px] bg-gradient-to-b from-white via-white/70 to-transparent" />
-      <div className="relative mx-auto max-w-[1180px] px-5 py-7 sm:px-7 sm:py-9 lg:px-9 lg:py-10">
-        <motion.header
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            duration: 0.55,
-            ease: pageEase,
-          }}
-          className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between"
-        >
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-black" />
+  const hasActiveFilters = Boolean(search.trim()) || filter !== "All";
 
-              <p className="text-[8px] font-semibold uppercase tracking-[0.18em] text-[#999]">
+  const clearFilters = () => {
+    setSearch("");
+    setFilter("All");
+  };
+
+  return (
+    <main className="relative min-h-full overflow-hidden bg-[#f8f8f7] text-[#191919] pb-28 sm:pb-32">
+      {/* Ambient page background */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[360px] bg-[radial-gradient(ellipse_at_top,_rgba(255,255,255,1)_0%,_rgba(255,255,255,0.8)_40%,_rgba(248,248,247,0)_78%)]" />
+
+      <div className="pointer-events-none absolute -right-32 top-20 h-72 w-72 rounded-full bg-white/70 blur-3xl" />
+
+      <div className="relative mx-auto max-w-[1240px] px-4 pb-10 pt-6 sm:px-7 sm:pb-12 sm:pt-9 lg:px-10 lg:pt-10">
+        {/* Header */}
+        <motion.header
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, ease: pageEase }}
+          className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"
+        >
+          <div className="min-w-0">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#eaeae7] bg-white/80 px-3 py-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#777] opacity-20" />
+                <span className="relative h-2 w-2 rounded-full bg-[#555]" />
+              </span>
+
+              <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#777]">
                 Client workspace
-              </p>
+              </span>
             </div>
 
-            <h1 className="mt-2 text-[27px] font-semibold tracking-[-0.055em] text-[#171717] sm:text-[29px]">
-              Projects
-            </h1>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <h1 className="text-[30px] font-semibold tracking-[-0.065em] text-[#171717] sm:text-[36px]">
+                Projects
+              </h1>
 
-            <p className="mt-1.5 max-w-[360px] text-[10px] leading-[1.6] text-[#888]">
-              View progress, deadlines and the latest activity
-              across your projects.
+              {!loading && !error && projects.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e8e8e5] bg-white px-2.5 py-1 text-[10px] font-medium text-[#777]">
+                  <Layers3 size={12} strokeWidth={1.7} />
+                  {projects.length} total
+                </span>
+              )}
+            </div>
+
+            <p className="mt-2 max-w-[440px] text-[12px] leading-6 text-[#858585] sm:text-[13px]">
+              Everything you need to track delivery, monitor progress,
+              and stay on top of your project milestones.
             </p>
           </div>
 
-          {/* Search */}
-          <div className="relative w-full sm:w-[235px]">
-            <Search
-              className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#aaa]"
-              strokeWidth={1.6}
-            />
+          <div className="w-full lg:max-w-[300px]">
+            <div className="mb-2 flex items-center justify-between">
+              <label className="text-[10px] font-semibold text-[#454545]">
+                Find a project
+              </label>
 
-            <input
-              type="search"
-              value={search}
-              onChange={(event) =>
-                setSearch(event.target.value)
-              }
-              placeholder="Search projects..."
-              className="h-9.5 w-full rounded-[6px] border border-[#e5e5e5] bg-white pl-9 pr-9 text-[10px] text-[#333] shadow-[0_1px_2px_rgba(0,0,0,0.02)] outline-none transition-all duration-200 placeholder:text-[#aaa] hover:border-[#d8d8d8] focus:border-[#bcbcbc] focus:shadow-[0_0_0_3px_rgba(0,0,0,0.025)]"
-            />
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="text-[10px] font-medium text-[#888] transition-colors hover:text-black"
+                >
+                  Clear search
+                </button>
+              )}
+            </div>
 
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full text-[#aaa] transition-colors hover:bg-[#f2f2f2] hover:text-black"
-                aria-label="Clear search"
-              >
-                ×
-              </button>
-            )}
+            <div className="relative rounded-xl border border-[#e7e7e4] bg-white p-1 shadow-[0_3px_12px_rgba(0,0,0,0.025)] transition-all duration-200 focus-within:border-[#c9c9c5] focus-within:shadow-[0_0_0_3px_rgba(0,0,0,0.035)]">
+              <ProjectSearch />
+            </div>
           </div>
         </motion.header>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
+        {/* Overview stats */}
+        <motion.section
+          aria-label="Project overview"
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
             duration: 0.55,
             delay: 0.08,
             ease: pageEase,
           }}
-          className="mt-7 grid grid-cols-3 gap-2.5 sm:max-w-[610px] sm:gap-3"
+          className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 lg:mt-10"
         >
           <Stat
             icon={FolderKanban}
-            label="Total"
+            label="Total projects"
             value={projects.length}
+            detail="Across your workspace"
+            loading={loading}
           />
 
           <Stat
             icon={Clock3}
-            label="In Progress"
+            label="In progress"
             value={inProgressProjects.length}
+            detail="Currently underway"
             active={inProgressProjects.length > 0}
+            loading={loading}
           />
 
           <Stat
             icon={CheckCircle2}
             label="Completed"
             value={completedProjects.length}
+            detail="Successfully delivered"
+            loading={loading}
           />
-        </motion.div>
+        </motion.section>
 
-        <motion.div
+        {/* Filter bar */}
+        <motion.section
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{
-            duration: 0.5,
-            delay: 0.18,
-          }}
-          className="mt-8 flex items-center justify-between border-b border-[#e7e7e7]"
+          transition={{ duration: 0.45, delay: 0.16 }}
+          className="mt-9 flex flex-col gap-4 border-b border-[#e5e5e1] sm:flex-row sm:items-center sm:justify-between"
         >
-          <div className="flex items-center gap-1">
+          <div
+            className="flex items-center gap-1 overflow-x-auto"
+            role="tablist"
+            aria-label="Filter projects by status"
+          >
             {filters.map((item) => {
               const active = filter === item;
+
+              const count =
+                item === "All"
+                  ? projects.length
+                  : item === "In Progress"
+                    ? inProgressProjects.length
+                    : completedProjects.length;
 
               return (
                 <button
                   key={item}
                   type="button"
+                  role="tab"
+                  aria-selected={active}
                   onClick={() => setFilter(item)}
                   className={[
-                    "relative px-3 pb-3 pt-1 text-[9px] font-medium transition-colors duration-200",
+                    "relative inline-flex shrink-0 items-center gap-2 px-3 py-3.5 text-[11px] font-medium transition-colors duration-200 sm:px-4",
                     active
-                      ? "text-[#111]"
+                      ? "text-[#171717]"
                       : "text-[#999] hover:text-[#444]",
                   ].join(" ")}
                 >
                   {item}
 
+                  <span
+                    className={[
+                      "rounded-md px-1.5 py-0.5 text-[9px] tabular-nums transition-colors",
+                      active
+                        ? "bg-[#ededeb] text-[#444]"
+                        : "bg-transparent text-[#aaa]",
+                    ].join(" ")}
+                  >
+                    {count}
+                  </span>
+
                   {active && (
                     <motion.span
                       layoutId="active-project-filter"
-                      className="absolute bottom-0 left-2 right-2 h-[1.5px] rounded-full bg-black"
-                      transition={{
-                        duration: 0.25,
-                        ease: pageEase,
-                      }}
+                      className="absolute inset-x-3 bottom-[-1px] h-[2px] rounded-full bg-[#202020] sm:inset-x-4"
+                      transition={{ duration: 0.25, ease: pageEase }}
                     />
                   )}
                 </button>
@@ -289,62 +392,91 @@ export default function ProjectsPage() {
             })}
           </div>
 
-          <div className="hidden items-center gap-1.5 pb-3 sm:flex">
-            <span className="text-[7px] text-[#aaa]">
-              Showing
-            </span>
-
-            <span className="text-[8px] font-medium text-[#555]">
-              {filteredProjects.length}
+          <div className="flex items-center justify-between gap-3 pb-3 sm:justify-end sm:pb-0">
+            <span className="inline-flex items-center gap-1.5 text-[10px] text-[#999]">
+              <CircleDot size={12} strokeWidth={1.6} />
+              {loading
+                ? "Updating projects"
+                : `Showing ${filteredProjects.length} of ${projects.length}`}
             </span>
           </div>
-        </motion.div>
+        </motion.section>
 
+        {/* Loading state */}
         {loading && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="mt-7 flex min-h-[280px] flex-col items-center justify-center rounded-[9px] border border-[#e6e6e6] bg-white"
+            className="mt-7 rounded-2xl border border-[#e9e9e6] bg-white p-5 sm:p-8"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#ededed] bg-[#fafafa]">
-              <LoaderCircle
-                className="h-4 w-4 animate-spin text-[#888]"
-                strokeWidth={1.5}
-              />
+            <div className="flex items-center gap-3 border-b border-[#f0f0ed] pb-5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f5f5f2]">
+                <LoaderCircle
+                  className="h-5 w-5 animate-spin text-[#777]"
+                  strokeWidth={1.5}
+                />
+              </div>
+
+              <div>
+                <p className="text-[12px] font-semibold text-[#333]">
+                  Loading your projects
+                </p>
+                <p className="mt-1 text-[10px] text-[#999]">
+                  Getting your workspace ready.
+                </p>
+              </div>
             </div>
 
-            <p className="mt-3 text-[10px] font-medium text-[#444]">
-              Loading projects
-            </p>
-
-            <p className="mt-1 text-[8px] text-[#aaa]">
-              Preparing your workspace...
-            </p>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {[0, 1].map((item) => (
+                <div
+                  key={item}
+                  className="animate-pulse rounded-xl border border-[#efefec] p-4"
+                >
+                  <div className="h-32 rounded-lg bg-[#f2f2ef]" />
+                  <div className="mt-4 h-3 w-2/3 rounded bg-[#ededeb]" />
+                  <div className="mt-3 h-2 w-1/3 rounded bg-[#f1f1ee]" />
+                  <div className="mt-5 h-1.5 rounded-full bg-[#f0f0ed]" />
+                </div>
+              ))}
+            </div>
           </motion.div>
         )}
 
+        {/* Error state */}
         {!loading && error && (
           <motion.div
-            initial={{ opacity: 0, y: 6 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-7 flex min-h-[280px] flex-col items-center justify-center rounded-[9px] border border-[#e2e2e2] bg-white px-5 text-center"
+            className="mt-7 flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-[#e8e8e5] bg-white px-5 py-10 text-center shadow-[0_3px_12px_rgba(0,0,0,0.015)]"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#ededed] bg-[#fafafa]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#ececea] bg-[#f8f8f6]">
               <FolderKanban
-                className="h-4 w-4 text-[#999]"
+                className="h-5 w-5 text-[#888]"
                 strokeWidth={1.5}
               />
             </div>
 
-            <p className="mt-3 text-[11px] font-semibold text-[#333]">
-              Unable to load projects
-            </p>
+            <h2 className="mt-4 text-[14px] font-semibold tracking-[-0.025em] text-[#292929]">
+              We couldn&apos;t load your projects
+            </h2>
 
-            <p className="mt-1 max-w-[280px] text-[9px] leading-4 text-[#999]">
+            <p className="mt-2 max-w-[320px] text-[11px] leading-5 text-[#888]">
               {error}
             </p>
+
+            <button
+              type="button"
+              onClick={() => void fetchProjects()}
+              className="mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-[#1c1c1c] px-4 text-[11px] font-semibold text-white transition-all hover:bg-[#363636] active:scale-[0.98]"
+            >
+              <RefreshCw size={13} />
+              Try again
+            </button>
           </motion.div>
         )}
+
+        {/* Project lists */}
         {!loading && !error && (
           <motion.div
             initial="hidden"
@@ -352,34 +484,19 @@ export default function ProjectsPage() {
             variants={{
               hidden: {},
               visible: {
-                transition: {
-                  staggerChildren: 0.06,
-                },
+                transition: { staggerChildren: 0.07 },
               },
             }}
           >
             {filteredActive.length > 0 && (
               <motion.section
-                variants={{
-                  hidden: {
-                    opacity: 0,
-                    y: 8,
-                  },
-                  visible: {
-                    opacity: 1,
-                    y: 0,
-                    transition: {
-                      duration: 0.45,
-                      ease: pageEase,
-                    },
-                  },
-                }}
-                className="mt-7"
+                variants={sectionVariants}
+                className="mt-8"
               >
                 <SectionHeading
-                  title="Current Projects"
+                  title="Current projects"
                   count={filteredActive.length}
-                  description="Projects currently underway"
+                  description="Projects currently in progress or awaiting their next milestone."
                 />
 
                 <motion.div
@@ -388,35 +505,21 @@ export default function ProjectsPage() {
                   variants={{
                     hidden: {},
                     visible: {
-                      transition: {
-                        staggerChildren: 0.08,
-                      },
+                      transition: { staggerChildren: 0.075 },
                     },
                   }}
                   className={[
-                    "mt-4 grid gap-4",
+                    "mt-5 grid gap-4 lg:gap-5",
                     filteredActive.length === 1
-                      ? "max-w-[650px]"
+                      ? "max-w-[720px]"
                       : "md:grid-cols-2",
                   ].join(" ")}
                 >
                   {filteredActive.map((project) => (
                     <motion.div
                       key={project.id}
-                      variants={{
-                        hidden: {
-                          opacity: 0,
-                          y: 10,
-                        },
-                        visible: {
-                          opacity: 1,
-                          y: 0,
-                          transition: {
-                            duration: 0.5,
-                            ease: pageEase,
-                          },
-                        },
-                      }}
+                      variants={cardVariants}
+                      className="min-w-0"
                     >
                       <ProjectCard project={project} />
                     </motion.div>
@@ -427,26 +530,13 @@ export default function ProjectsPage() {
 
             {filteredCompleted.length > 0 && (
               <motion.section
-                variants={{
-                  hidden: {
-                    opacity: 0,
-                    y: 8,
-                  },
-                  visible: {
-                    opacity: 1,
-                    y: 0,
-                    transition: {
-                      duration: 0.45,
-                      ease: pageEase,
-                    },
-                  },
-                }}
-                className="mt-11"
+                variants={sectionVariants}
+                className="mt-12"
               >
                 <SectionHeading
-                  title="Completed Projects"
+                  title="Completed projects"
                   count={filteredCompleted.length}
-                  description="Projects successfully delivered"
+                  description="A record of the projects you've successfully delivered."
                 />
 
                 <motion.div
@@ -455,128 +545,98 @@ export default function ProjectsPage() {
                   variants={{
                     hidden: {},
                     visible: {
-                      transition: {
-                        staggerChildren: 0.06,
-                      },
+                      transition: { staggerChildren: 0.06 },
                     },
                   }}
-                  className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+                  className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
                 >
                   {filteredCompleted.map((project) => (
                     <motion.div
                       key={project.id}
-                      variants={{
-                        hidden: {
-                          opacity: 0,
-                          y: 10,
-                        },
-                        visible: {
-                          opacity: 1,
-                          y: 0,
-                          transition: {
-                            duration: 0.45,
-                            ease: pageEase,
-                          },
-                        },
-                      }}
+                      variants={cardVariants}
+                      className="min-w-0"
                     >
-                      <ProjectCard
-                        project={project}
-                        compact
-                      />
+                      <ProjectCard project={project} compact />
                     </motion.div>
                   ))}
                 </motion.div>
               </motion.section>
             )}
 
+            {/* Empty state */}
             {filteredProjects.length === 0 && (
               <motion.div
-                initial={{
-                  opacity: 0,
-                  y: 8,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                transition={{
-                  duration: 0.4,
-                  ease: pageEase,
-                }}
-                className="mt-7 flex min-h-[280px] flex-col items-center justify-center rounded-[9px] border border-dashed border-[#dcdcdc] bg-white px-5 text-center"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: pageEase }}
+                className="mt-7 flex min-h-[310px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#dcdcd7] bg-white/80 px-5 py-10 text-center"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e9e9e9] bg-[#fafafa]">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#ecece8] bg-[#f8f8f6]">
                   <Search
-                    className="h-4 w-4 text-[#999]"
+                    className="h-5 w-5 text-[#999]"
                     strokeWidth={1.5}
                   />
                 </div>
 
-                <p className="mt-3 text-[11px] font-semibold text-[#444]">
-                  No projects found
-                </p>
+                <h2 className="mt-4 text-[14px] font-semibold tracking-[-0.025em] text-[#292929]">
+                  {hasActiveFilters
+                    ? "No matching projects"
+                    : "Your workspace is ready"}
+                </h2>
 
-                <p className="mt-1 max-w-[250px] text-[9px] leading-4 text-[#999]">
+                <p className="mt-2 max-w-[300px] text-[11px] leading-5 text-[#92928e]">
                   {projects.length === 0
-                    ? "You don't have any projects yet."
-                    : "Try changing your search or selecting another filter."}
+                    ? "Your projects will appear here when they become available."
+                    : "We couldn't find any projects matching your current search and filters."}
                 </p>
 
-                {(search || filter !== "All") && (
+                {hasActiveFilters && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setSearch("");
-                      setFilter("All");
-                    }}
-                    className="mt-4 inline-flex h-7 items-center gap-1.5 rounded-[5px] bg-black px-3 text-[8px] font-semibold text-white transition-colors hover:bg-[#222]"
+                    onClick={clearFilters}
+                    className="mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-[#1c1c1c] px-4 text-[11px] font-semibold text-white transition-colors hover:bg-[#363636]"
                   >
                     Clear filters
-                    <ArrowUpRight
-                      size={10}
-                      strokeWidth={1.8}
-                    />
                   </button>
                 )}
               </motion.div>
             )}
 
+            {/* Workspace footer */}
             {projects.length > 0 && (
-              <motion.div
-                initial={{
-                  opacity: 0,
-                }}
-                animate={{
-                  opacity: 1,
-                }}
-                transition={{
-                  duration: 0.5,
-                  delay: 0.5,
-                }}
-                className="mt-12 flex items-center justify-between border-t border-[#e8e8e8] pt-4"
+              <motion.footer
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.25 }}
+                className="mt-12 flex flex-col gap-3 border-t border-[#e5e5e1] pt-5 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div className="flex items-center gap-2">
-                  <Sparkles
-                    size={10}
-                    strokeWidth={1.5}
-                    className="text-[#999]"
-                  />
-
-                  <span className="text-[7px] uppercase tracking-[0.14em] text-[#aaa]">
-                    Workspace
-                  </span>
+                <div>
+                  <p className="text-[11px] font-semibold text-[#444]">
+                    Project overview
+                  </p>
+                  <p className="mt-1 text-[10px] text-[#999]">
+                    Your workspace at a glance.
+                  </p>
                 </div>
 
-                <span className="text-[7px] text-[#aaa]">
-                  {activeProjects.length} active ·{" "}
-                  {completedProjects.length} completed
-                </span>
-              </motion.div>
+                <div className="flex flex-wrap items-center gap-2 text-[10px] text-[#777]">
+                  <span className="rounded-lg border border-[#e8e8e4] bg-white px-3 py-2">
+                    {activeProjects.length} active
+                  </span>
+                  <span className="rounded-lg border border-[#e8e8e4] bg-white px-3 py-2">
+                    {completedProjects.length} completed
+                  </span>
+                </div>
+              </motion.footer>
             )}
           </motion.div>
         )}
       </div>
+     
+      <ProjectActionDialogs
+        role={role}
+        onProjectCreated={fetchProjects}
+      />
     </main>
   );
 }
@@ -591,19 +651,19 @@ function SectionHeading({
   description: string;
 }) {
   return (
-    <div className="flex items-end justify-between gap-4">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <div className="flex items-center gap-2">
-          <h2 className="text-[12px] font-semibold tracking-[-0.02em] text-[#222]">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <h2 className="text-[15px] font-semibold tracking-[-0.04em] text-[#222] sm:text-[16px]">
             {title}
           </h2>
 
-          <span className="flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#ededed] px-1.5 text-[7px] font-semibold text-[#777]">
+          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-lg border border-[#e8e8e4] bg-white px-2 text-[10px] font-semibold tabular-nums text-[#686864]">
             {count}
           </span>
         </div>
 
-        <p className="mt-1 text-[7.5px] text-[#aaa]">
+        <p className="mt-1.5 text-[11px] leading-5 text-[#92928e]">
           {description}
         </p>
       </div>
@@ -615,51 +675,69 @@ function Stat({
   icon: Icon,
   label,
   value,
+  detail,
   active = false,
+  loading = false,
 }: {
   icon: typeof FolderKanban;
   label: string;
   value: number;
+  detail: string;
   active?: boolean;
+  loading?: boolean;
 }) {
   return (
     <motion.div
-      whileHover={{
-        y: -2,
-      }}
-      transition={{
-        duration: 0.2,
-      }}
-      className="group relative overflow-hidden rounded-[8px] border border-[#e6e6e6] bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.015)] transition-shadow duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.045)]"
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.2 }}
+      className="group relative overflow-hidden rounded-2xl border border-[#e7e7e3] bg-white p-4 shadow-[0_2px_10px_rgba(0,0,0,0.018)] transition-all duration-300 hover:border-[#d8d8d3] hover:shadow-[0_10px_30px_rgba(0,0,0,0.045)] sm:p-5"
     >
-      {/* Subtle corner detail */}
-      <div className="pointer-events-none absolute -right-4 -top-4 h-12 w-12 rounded-full bg-[#fafafa] transition-transform duration-500 group-hover:scale-125" />
+      <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#f8f8f6] transition-transform duration-500 group-hover:scale-110" />
 
-      <div className="relative flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-[5px] bg-[#f7f7f7]">
+      <div className="relative flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#ededE9] bg-[#fafaf8] transition-colors group-hover:bg-[#f2f2ef]">
             <Icon
-              className="h-3.5 w-3.5 text-[#777]"
-              strokeWidth={1.5}
+              className="h-[17px] w-[17px] text-[#686864]"
+              strokeWidth={1.6}
             />
           </div>
 
-          <span className="text-[8px] font-medium text-[#999]">
+          <span className="text-[11px] font-medium text-[#777772]">
             {label}
           </span>
         </div>
 
-        {active && (
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-black opacity-20" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-black" />
+        {active && !loading && (
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#777] opacity-20" />
+            <span className="relative h-2 w-2 rounded-full bg-[#555]" />
           </span>
         )}
       </div>
 
-      <p className="relative mt-3 text-[20px] font-semibold tracking-[-0.045em] text-[#222]">
-        {value}
-      </p>
+      <div className="relative mt-5 flex items-end justify-between gap-3">
+        {loading ? (
+          <div className="h-9 w-14 animate-pulse rounded-md bg-[#f0f0ed]" />
+        ) : (
+          <p className="text-[29px] font-semibold leading-none tracking-[-0.065em] text-[#202020] tabular-nums sm:text-[32px]">
+            {value.toString().padStart(2, "0")}
+          </p>
+        )}
+
+        <span className="pb-0.5 text-right text-[9px] leading-4 text-[#a0a09b]">
+          {detail}
+        </span>
+      </div>
+
+      <div className="relative mt-4 h-px overflow-hidden bg-[#f0f0ed]">
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: loading ? 0 : 1 }}
+          transition={{ duration: 0.7, ease: pageEase }}
+          className="h-full origin-left bg-[#c9c9c3]"
+        />
+      </div>
     </motion.div>
   );
 }

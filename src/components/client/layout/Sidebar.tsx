@@ -15,8 +15,13 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { LogoutOutlined } from "@ant-design/icons";
+
+
 
 const navigation = [
   {
@@ -47,8 +52,8 @@ const navigation = [
   {
     label: "Notifications",
     icon: Bell,
-    badge: 1,
     link: "/client/notifications",
+    hasBadge: true,
   },
   {
     label: "Profile",
@@ -57,11 +62,77 @@ const navigation = [
   },
 ];
 
+interface UnreadCountResponse {
+  success: boolean;
+  unreadCount?: number;
+  error?: string;
+}
+
 export const Sidebar = () => {
   const pathname = usePathname();
-
+  const { user, loading, logout } = useAuth();
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const firstName = user?.fname?.trim() ?? "";
+  const surnameInitial = user?.lname?.trim()?.[0]?.toUpperCase() ?? "";
+  const fullName = [user?.fname, user?.lname].filter(Boolean).join(" ").trim();
+  const displayName = fullName || (loading ? "Loading profile..." : "User");
+  const initials =`${user?.fname?.[0] ?? ""}${user?.lname?.[0] ?? ""}`.toUpperCase() || "U";
+  const roleLabel = user?.role === "admin" ? "Administrator" : "Client";
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const response = await fetch("/api/notifications/unread-count",
+        {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) return;
+      const data = (await response.json()) as UnreadCountResponse;
+      if (data.success &&
+        typeof data.unreadCount === "number"
+      ) {
+        setUnreadCount(Math.max(0, data.unreadCount));
+      }
+    } catch (error) {
+      console.error(
+        "Failed to fetch unread notification count:",
+        error
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchUnreadCount();
+  }, [fetchUnreadCount, pathname]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void fetchUnreadCount();
+      }
+    };
+
+    window.addEventListener("focus", fetchUnreadCount);
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    return () => {
+      window.removeEventListener("focus", fetchUnreadCount);
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, [fetchUnreadCount]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -69,9 +140,7 @@ export const Sidebar = () => {
         setMobileOpen(false);
       }
     };
-
     window.addEventListener("resize", handleResize);
-
     return () => {
       window.removeEventListener("resize", handleResize);
     };
@@ -79,9 +148,7 @@ export const Sidebar = () => {
 
   useEffect(() => {
     if (!mobileOpen) return;
-
     document.body.style.overflow = "hidden";
-
     return () => {
       document.body.style.overflow = "";
     };
@@ -91,18 +158,30 @@ export const Sidebar = () => {
     setMobileOpen(false);
   }, [pathname]);
 
+  const handleLogout = async () => {
+    if (loggingOut) return;
+
+    setLoggingOut(true);
+
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Failed to log out:", error);
+    } finally {
+      router.replace("/");
+      router.refresh();
+    }
+  };
   return (
     <>
       <button
         type="button"
         aria-label="Open navigation"
+        aria-expanded={mobileOpen}
         onClick={() => setMobileOpen(true)}
         className="fixed left-4 top-4 z-40 flex h-9 w-9 items-center justify-center rounded-[6px] border border-[#e4e4e4] bg-white text-[#333] shadow-sm transition-colors hover:bg-[#f7f7f7] lg:hidden"
       >
-        <Menu
-          className="h-4 w-4"
-          strokeWidth={1.8}
-        />
+        <Menu className="h-4 w-4" strokeWidth={1.8} />
       </button>
 
       <AnimatePresence>
@@ -138,6 +217,7 @@ export const Sidebar = () => {
             : "-translate-x-full lg:translate-x-0",
         ].join(" ")}
       >
+        {/* Logo and sidebar controls */}
         <div
           className={[
             "flex h-[72px] shrink-0 items-center border-b border-[#f0f0f0]",
@@ -189,9 +269,7 @@ export const Sidebar = () => {
           <button
             type="button"
             aria-label={
-              collapsed
-                ? "Expand sidebar"
-                : "Collapse sidebar"
+              collapsed ? "Expand sidebar" : "Collapse sidebar"
             }
             onClick={() => setCollapsed((value) => !value)}
             className={[
@@ -222,15 +300,12 @@ export const Sidebar = () => {
             onClick={() => setMobileOpen(false)}
             className="flex h-7 w-7 items-center justify-center rounded-[5px] text-[#888] hover:bg-[#f5f5f5] hover:text-[#222] lg:hidden"
           >
-            <X
-              className="h-4 w-4"
-              strokeWidth={1.8}
-            />
+            <X className="h-4 w-4" strokeWidth={1.8} />
           </button>
         </div>
 
-        <nav
-          className={[
+        {/* Navigation */}
+        <nav className={[
             "flex-1 overflow-y-auto py-5",
             collapsed ? "px-2" : "px-3",
           ].join(" ")}
@@ -244,6 +319,11 @@ export const Sidebar = () => {
                   ? pathname === "/client"
                   : pathname.startsWith(item.link);
 
+              const showBadge =
+                "hasBadge" in item &&
+                item.hasBadge &&
+                unreadCount > 0;
+
               return (
                 <div
                   key={item.label}
@@ -252,7 +332,15 @@ export const Sidebar = () => {
                   <Link
                     href={item.link}
                     onClick={() => setMobileOpen(false)}
-                    aria-label={item.label}
+                    aria-label={
+                      collapsed
+                        ? `${item.label}${
+                            showBadge
+                              ? `, ${unreadCount} unread`
+                              : ""
+                          }`
+                        : undefined
+                    }
                     className={[
                       "relative flex h-[36px] w-full items-center rounded-[6px]",
                       "text-[10px] font-medium transition-colors",
@@ -271,57 +359,57 @@ export const Sidebar = () => {
                       />
                     )}
 
-                    <Icon
-                      strokeWidth={isActive ? 1.9 : 1.7}
-                      className="h-[14px] w-[14px] shrink-0"
-                    />
+                    <span className="relative flex shrink-0 items-center justify-center">
+                      <Icon
+                        strokeWidth={isActive ? 1.9 : 1.7}
+                        className="h-[14px] w-[14px]"
+                      />
+
+                      {/* Badge for collapsed sidebar */}
+                      {showBadge && collapsed && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute -right-[7px] -top-[6px] flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#111] px-[3px] text-[8px] font-semibold leading-none text-white ring-2 ring-white"
+                        >
+                          {unreadCount > 99
+                            ? "99+"
+                            : unreadCount}
+                        </span>
+                      )}
+                    </span>
 
                     <AnimatePresence initial={false}>
                       {!collapsed && (
                         <motion.span
-                          initial={{
-                            opacity: 0,
-                            width: 0,
-                          }}
-                          animate={{
-                            opacity: 1,
-                            width: "auto",
-                          }}
-                          exit={{
-                            opacity: 0,
-                            width: 0,
-                          }}
-                          transition={{
-                            duration: 0.15,
-                          }}
+                          initial={{ opacity: 0, width: 0 }}
+                          animate={{ opacity: 1, width: "auto" }}
+                          exit={{ opacity: 0, width: 0 }}
+                          transition={{ duration: 0.15 }}
                           className="overflow-hidden whitespace-nowrap"
                         >
                           {item.label}
                         </motion.span>
                       )}
                     </AnimatePresence>
-
-                    {item.badge && (
+                    {showBadge && !collapsed && (
                       <span
+                        aria-label={`${unreadCount} unread notifications`}
                         className={[
-                          "flex items-center justify-center rounded-full",
-                          "text-[10px] font-semibold",
-                          collapsed
-                            ? "absolute right-1 top-1 h-[14px] min-w-[14px] bg-[#111] text-white"
-                            : "ml-auto h-[16px] min-w-[16px] bg-[#111] px-1 text-white",
-                          isActive && !collapsed
+                          "ml-auto flex h-[16px] min-w-[16px] shrink-0 items-center justify-center rounded-full px-1",
+                          "text-[8px] font-semibold leading-none",
+                          isActive
                             ? "bg-white text-[#111]"
-                            : "",
+                            : "bg-[#111] text-white",
                         ].join(" ")}
                       >
-                        {item.badge}
+                        {unreadCount > 99 ? "99+" : unreadCount}
                       </span>
                     )}
                   </Link>
-
-                 {collapsed && (
+                  {collapsed && (
                     <div className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-[70] hidden -translate-y-1/2 whitespace-nowrap rounded-[5px] bg-[#111] px-2.5 py-1.5 text-[10px] font-medium text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100 lg:block">
                       {item.label}
+                      {showBadge && ` (${unreadCount} unread)`}
 
                       <span className="absolute right-full top-1/2 -mr-[1px] h-0 w-0 -translate-y-1/2 border-y-[4px] border-r-[4px] border-y-transparent border-r-[#111]" />
                     </div>
@@ -329,6 +417,44 @@ export const Sidebar = () => {
                 </div>
               );
             })}
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              aria-label={loggingOut ? "Logging out" : "Log out"}
+              title={collapsed ? "Log out" : undefined}
+              className={[
+                "group relative flex h-[36px] w-full items-center rounded-[6px]",
+                "text-[10px] font-medium transition-colors",
+                "disabled:cursor-not-allowed disabled:opacity-50",
+                collapsed ? "justify-center px-0" : "gap-3 px-3",
+                "text-[#777] hover:bg-rose-50 hover:text-rose-600",
+              ].join(" ")}
+            >
+              <span className="flex shrink-0 items-center justify-center">
+                <LogoutOutlined className="text-[14px] transition-transform duration-200 group-hover:translate-x-0.5" />
+              </span>
+
+              <AnimatePresence initial={false}>
+                {!collapsed && (
+                  <motion.span
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: "auto" }}
+                    exit={{ opacity: 0, width: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="overflow-hidden whitespace-nowrap"
+                  >
+                    {loggingOut ? "Signing out..." : "Log out"}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+
+              {collapsed && (
+                <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-[70] hidden -translate-y-1/2 whitespace-nowrap rounded-[5px] bg-[#111] px-2.5 py-1.5 text-[10px] font-medium text-white opacity-0 shadow-md group-hover:opacity-100 lg:block">
+                  {loggingOut ? "Signing out..." : "Log out"}
+                </span>
+              )}
+            </button>
           </div>
         </nav>
 
@@ -339,52 +465,62 @@ export const Sidebar = () => {
             collapsed ? "p-3" : "px-4 py-4",
           ].join(" ")}
         >
-          <div
+          <Link
+            href="/client/profile"
+            aria-label={`Open profile for ${displayName}`}
+            title={collapsed ? displayName : undefined}
+            onClick={() => setMobileOpen(false)}
             className={[
-              "flex items-center",
-              collapsed
-                ? "justify-center"
-                : "gap-2.5",
+              "group flex min-w-0 items-center rounded-[6px] transition-colors",
+              "hover:bg-[#f7f7f7]",
+              collapsed ? "justify-center p-1" : "gap-2.5 px-1.5 py-1.5",
             ].join(" ")}
           >
-            <div className="relative flex h-[30px] w-[30px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#e8e8e8]">
-              <UserRound
-                className="h-[15px] w-[15px] text-[#777]"
-                strokeWidth={1.6}
-              />
+            <div className="relative flex h-[30px] w-[30px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#e5e5e5] bg-[#ededed]">
+              {user?.image ? (
+                <Image
+                  src={user.image}
+                  alt={fullName || "Profile photo"}
+                  width={60}
+                  height={60}
+                  unoptimized
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="text-[10px] font-semibold text-[#555]">
+                  {initials}
+                </span>
+              )}
 
-              <span className="absolute bottom-0 right-0 h-[7px] w-[7px] rounded-full border-2 border-white bg-[#4a9b68]" />
+              <span
+                aria-hidden="true"
+                className="absolute bottom-0 right-0 h-[7px] w-[7px] rounded-full border-2 border-white bg-[#4a9b68]"
+              />
             </div>
 
             <AnimatePresence initial={false}>
               {!collapsed && (
                 <motion.div
-                  initial={{
-                    opacity: 0,
-                    width: 0,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    width: "auto",
-                  }}
-                  exit={{
-                    opacity: 0,
-                    width: 0,
-                  }}
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="min-w-0 overflow-hidden"
+                  className="min-w-0 flex-1 overflow-hidden"
                 >
-                  <p className="truncate text-[9px] font-semibold text-[#222]">
-                    Charles M.
+                  <p
+                    className="truncate text-[9px] font-semibold text-[#222]"
+                    title={fullName}
+                  >
+                    {displayName}
                   </p>
 
-                  <p className="mt-0.5 text-[10px] text-[#8a8a8a]">
-                    Client
+                  <p className="mt-0.5 truncate text-[10px] capitalize text-[#8a8a8a]">
+                    {roleLabel}
                   </p>
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+          </Link>
         </div>
       </motion.aside>
     </>

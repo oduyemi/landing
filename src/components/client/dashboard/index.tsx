@@ -8,6 +8,7 @@ import { StatCard } from "@/components/client/layout/StatsCard";
 import { ProjectCard } from "@/components/client/layout/ProjectCard";
 import { ActionRequired } from "@/components/client/layout/ActionRequired";
 import { RecentActivity } from "@/components/client/layout/RecentActivities";
+import { useAuth } from "@/context/AuthContext";
 
 type ProjectStatus =
   | "Planning"
@@ -40,9 +41,13 @@ interface Project {
 }
 
 export function ClientDashboard() {
+  const { user, loading: userLoading } = useAuth();
+  const firstName = user?.fname?.trim();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingActionCount, setPendingActionCount] = useState(0);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -97,6 +102,129 @@ export function ClientDashboard() {
     [projects]
   );
 
+  
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await fetch(
+          "/api/notifications/unread-count",
+          {
+            method: "GET",
+            credentials: "include",
+            cache: "no-store",
+          }
+        );
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        if (
+          isMounted &&
+          data.success &&
+          typeof data.unreadCount === "number"
+        ) {
+          setUnreadCount(Math.max(0, data.unreadCount));
+        }
+      } catch (error) {
+        console.error(
+          "FETCH DASHBOARD NOTIFICATIONS ERROR:",
+          error
+        );
+      }
+    };
+
+    void fetchUnreadCount();
+
+    const handleFocus = () => {
+      void fetchUnreadCount();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void fetchUnreadCount();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchPendingActions = async () => {
+      try {
+        const response = await fetch(
+          "/api/tasks/action-required",
+          {
+            credentials: "include",
+            cache: "no-store",
+          }
+        );
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        if (
+          isMounted &&
+          data.success &&
+          typeof data.count === "number"
+        ) {
+          setPendingActionCount(data.count);
+        }
+      } catch (error) {
+        console.error(
+          "Failed to fetch pending actions:",
+          error
+        );
+      }
+    };
+
+    void fetchPendingActions();
+
+    const handleFocus = () => {
+      void fetchPendingActions();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void fetchPendingActions();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, []);
+
+
   return (
     <div className="px-7">
       <DashboardHeader />
@@ -110,9 +238,9 @@ export function ClientDashboard() {
         >
           <div className="flex items-end justify-between gap-4">
             <div>
-              <h1 className="text-[14px] font-semibold tracking-[-0.02em] text-[#181818]">
-                Hello
-              </h1>
+            <h1 className="text-[14px] font-semibold tracking-[-0.02em] text-[#181818]">
+              {userLoading ? "Welcome" : `Hello${firstName ? ` ${firstName}` : ""}`}
+            </h1>
 
               <p className="mt-1 text-[9px] text-[#929292]">
                 Here&apos;s what&apos;s happening with your projects.
@@ -132,15 +260,27 @@ export function ClientDashboard() {
             label="Active Projects"
           />
 
-          <StatCard
-            value={1}
-            label="Pending Action"
-          />
+          <Link
+            href="/client/tasks"
+            aria-label={`${pendingActionCount} tasks requiring action`}
+            className="block rounded-[6px] outline-none focus-visible:ring-2 focus-visible:ring-[#777]"
+          >
+            <StatCard
+              value={pendingActionCount}
+              label="Pending Action"
+            />
+          </Link>
 
-          <StatCard
-            value={3}
-            label="Notifications"
-          />
+          <Link
+            href="/client/notifications"
+            aria-label={`${unreadCount} unread notifications`}
+            className="block rounded-[6px] outline-none focus-visible:ring-2 focus-visible:ring-[#777]"
+          >
+            <StatCard
+              value={unreadCount}
+              label="Unread Notifications"
+            />
+          </Link>
 
           <StatCard
             value={pastProjects.length}

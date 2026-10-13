@@ -1,4 +1,5 @@
-import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
+import {UploadApiResponse, v2 as cloudinary} from "cloudinary";
+
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
@@ -7,15 +8,17 @@ cloudinary.config({
 });
 
 
+export const createProjectFolders = async (projectFolder: string) => {
+  const root = projectFolder.replace(/^\/+|\/+$/g, "");
+  if (!root) {
+    throw new Error("A project folder name is required.");
+  }
 
-export const createProjectFolders = async (
-  projectFolder: string
-) => {
   const folders = [
-    projectFolder,
-    `${projectFolder}/media`,
-    `${projectFolder}/brand`,
-    `${projectFolder}/others`,
+    root,
+    `${root}/media`,
+    `${root}/brand`,
+    `${root}/others`,
   ];
 
   for (const folder of folders) {
@@ -23,18 +26,20 @@ export const createProjectFolders = async (
   }
 
   return {
-    root: projectFolder,
-    media: `${projectFolder}/media`,
-    brand: `${projectFolder}/brand`,
-    others: `${projectFolder}/others`,
+    root,
+    media: `${root}/media`,
+    brand: `${root}/brand`,
+    others: `${root}/others`,
   };
 };
 
 
+export const deleteProjectFolder = async (projectFolder: string) => {
+  const root = projectFolder.replace(/^\/+|\/+$/g, "");
+  if (!root) {
+    throw new Error("A project folder name is required.");
+  }
 
-export const deleteProjectFolder = async (
-  projectFolder: string
-) => {
   const resourceTypes: Array<"image" | "video" | "raw"> = [
     "image",
     "video",
@@ -43,26 +48,26 @@ export const deleteProjectFolder = async (
 
   for (const resourceType of resourceTypes) {
     try {
-      await cloudinary.api.delete_resources_by_prefix(
-        projectFolder,
-        {
-          resource_type: resourceType,
-          type: "upload",
-        }
-      );
+      await cloudinary.api.delete_resources_by_prefix(root, {
+        resource_type: resourceType,
+        type: "upload",
+        invalidate: true,
+      });
     } catch (error) {
       console.error(
         `CLOUDINARY DELETE ${resourceType.toUpperCase()} ERROR:`,
         error
       );
+
+      throw error;
     }
   }
 
   const folders = [
-    `${projectFolder}/media`,
-    `${projectFolder}/brand`,
-    `${projectFolder}/others`,
-    projectFolder,
+    `${root}/media`,
+    `${root}/brand`,
+    `${root}/others`,
+    root,
   ];
 
   for (const folder of folders) {
@@ -76,7 +81,6 @@ export const deleteProjectFolder = async (
     }
   }
 };
-
 
 
 export const uploadToCloudinary = (
@@ -94,8 +98,8 @@ export const uploadToCloudinary = (
         folder: options.folder,
         public_id: options.publicId,
         resource_type: options.resourceType,
-        use_filename: true,
-        unique_filename: true,
+        use_filename: !options.publicId,
+        unique_filename: !options.publicId,
         overwrite: false,
         filename_override: options.originalFilename,
       },
@@ -107,9 +111,7 @@ export const uploadToCloudinary = (
 
         if (!result) {
           reject(
-            new Error(
-              "Cloudinary returned no upload result."
-            )
+            new Error("Cloudinary returned no upload result.")
           );
           return;
         }
@@ -133,5 +135,6 @@ export const deleteCloudinaryResource = async (
     invalidate: true,
   });
 };
+
 
 export default cloudinary;

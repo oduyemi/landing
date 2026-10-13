@@ -456,24 +456,13 @@ export async function POST(req: NextRequest) {
      */
     try {
       await createMessageNotification({
-        recipient:
-          recipientObjectId,
-
+        recipient: new mongoose.Types.ObjectId(recipientId),
         actor: user._id,
-
-        project:
-          projectObjectId,
-
-        message:
-          message._id,
-
-        projectTitle:
-          project.title,
-
+        project: new mongoose.Types.ObjectId(projectId),
+        message: message._id,
+        projectTitle: project.title,
         actorName,
-
-        threadId:
-          resolvedThreadId,
+        threadId: resolvedThreadId,
       });
     } catch (notificationError) {
       console.error(
@@ -481,18 +470,6 @@ export async function POST(req: NextRequest) {
         notificationError
       );
     }
-
-    /*
-     * Email notification.
-     *
-     * IMPORTANT:
-     * Do not await this operation.
-     *
-     * Email delivery is secondary to the actual
-     * message creation. A slow/unavailable SMTP
-     * server must never make POST /api/messages
-     * take 60–90 seconds.
-     */
     void (async () => {
       try {
         const recipient =

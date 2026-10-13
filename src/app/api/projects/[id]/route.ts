@@ -216,16 +216,12 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         );
       }
 
-      if (clientUser.role !== "user") {
+      if (!["user", "admin"].includes(clientUser.role)) {
         return NextResponse.json(
-          {
-            error:
-              "Projects can only be assigned to client users.",
-          },
+          { error: "The selected account cannot be assigned to a project." },
           { status: 400 }
         );
       }
-
       project.client = clientUser._id;
     }
 

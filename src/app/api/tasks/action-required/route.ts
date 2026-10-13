@@ -3,6 +3,12 @@ import { dbConnect } from "@/utils/db";
 import Task from "@/models/task.model";
 import { getCurrentUser } from "@/utils/auth";
 
+const ACTION_REQUIRED_STATUSES = [
+  "Pending",
+  "In Progress",
+  "On Hold",
+];
+
 export async function GET(_req: NextRequest) {
   try {
     await dbConnect();
@@ -20,37 +26,37 @@ export async function GET(_req: NextRequest) {
     }
 
     const assignedTo =
-      user.role === "admin"
-        ? "admin"
-        : "client";
+      user.role === "admin" ? "admin" : "client";
 
-    const tasks = await Task.find({
+    const filter = {
       assignedTo,
       assignedUser: user._id,
       status: {
-        $in: [
-          "Pending",
-          "In Progress",
-          "On Hold",
-        ],
+        $in: ACTION_REQUIRED_STATUSES,
       },
-    })
-      .populate("project", "title")
-      .populate(
-        "createdBy",
-        "fname lname email image role"
-      )
-      .sort({
-        dueDate: 1,
-        createdAt: -1,
-      })
-      .limit(10)
-      .lean();
+    };
+
+    const [tasks, count] = await Promise.all([
+      Task.find(filter)
+        .populate("project", "title")
+        .populate(
+          "createdBy",
+          "fname lname email image role"
+        )
+        .sort({
+          dueDate: 1,
+          createdAt: -1,
+        })
+        .limit(10)
+        .lean(),
+
+      Task.countDocuments(filter),
+    ]);
 
     return NextResponse.json({
       success: true,
       tasks,
-      count: tasks.length,
+      count,
     });
   } catch (error) {
     console.error(
@@ -61,8 +67,7 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error:
-          "Unable to load required actions.",
+        error: "Unable to load required actions.",
       },
       { status: 500 }
     );

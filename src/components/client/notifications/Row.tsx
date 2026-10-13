@@ -12,9 +12,13 @@ import {
 } from "lucide-react";
 import type { ClientNotification } from "./index";
 
+
+
 interface NotificationRowProps {
   notification: ClientNotification;
-  onMarkAsRead: (id: string) => void;
+  onClick: (
+    notification: ClientNotification
+  ) => void | Promise<void>;
 }
 
 const getNotificationIcon = (
@@ -52,23 +56,14 @@ const getNotificationIcon = (
 
 export const NotificationRow = ({
   notification,
-  onMarkAsRead,
+  onClick,
 }: NotificationRowProps) => {
-  const handleClick = () => {
-    if (!notification.read) {
-      onMarkAsRead(notification.id);
-    }
-
-    if (notification.href) {
-      window.location.href =
-        notification.href;
-    }
-  };
-
   return (
     <motion.button
       type="button"
-      onClick={handleClick}
+      onClick={() => {
+        void onClick(notification);
+      }}
       initial={{
         opacity: 0,
         y: 4,
@@ -102,7 +97,10 @@ export const NotificationRow = ({
         {getNotificationIcon(notification)}
 
         {!notification.read && (
-          <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-black ring-2 ring-white" />
+          <span
+            aria-hidden="true"
+            className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-black ring-2 ring-white"
+          />
         )}
       </div>
 
