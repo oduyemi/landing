@@ -246,9 +246,9 @@ export default function ProjectsPage() {
                 <span className="relative h-2 w-2 rounded-full bg-[#555]" />
               </span>
 
-              <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#777]">
+              {/* <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#777]">
                 Client workspace
-              </span>
+              </span> */}
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-3">
