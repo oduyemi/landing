@@ -122,7 +122,7 @@ export default function ProjectSearch() {
           placeholder="Search your projects..."
           aria-label="Search projects"
           aria-expanded={isOpen}
-          className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-100"
+          className="h-11 w-full rounded-xl border border-slate-200 bg-gray-50 pl-10 pr-10 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-100"
         />
 
         {query && (
@@ -133,7 +133,7 @@ export default function ProjectSearch() {
               setIsOpen(true);
             }}
             aria-label="Clear search"
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 transition hover:bg-gray-200 hover:text-slate-700"
           >
             <X size={15} />
           </button>
@@ -185,9 +185,9 @@ export default function ProjectSearch() {
                       key={project._id}
                       type="button"
                       onClick={() => openProject(project._id)}
-                      className="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                      className="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
                     >
-                      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-slate-600">
                         <Search size={16} />
                       </span>
 
