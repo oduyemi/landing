@@ -1,87 +1,61 @@
+import type { Metadata, Viewport } from "next";
+import type { ReactNode } from "react";
 import "./globals.css";
-import Head from "next/head";
 import AppLayout from "@/components/layouts/AppLayout";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/context/AuthContext";
 
+export const metadata: Metadata = {
+  title: "Project Portal | Òduyémi",
+  description: "Track project milestones in real time",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      {
+        url: "/favicon-16x16.png",
+        sizes: "16x16",
+        type: "image/png",
+      },
+      {
+        url: "/favicon-32x32.png",
+        sizes: "32x32",
+        type: "image/png",
+      },
+      {
+        url: "/logo192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/android-chrome-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+  manifest: "/site.webmanifest",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   return (
-    <>
-      <html lang="en">
-        <Head>
-          <title>Project Portal | Òduyémi</title>
-
-          <meta
-            name="description"
-            content="Track project milestones in real time"
-          />
-
-          <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1"
-          />
-
-          {/* Favicon & Icons */}
-          <link
-            rel="icon"
-            type="image/png"
-            sizes="16x16"
-            href="/favicon-16x16.png"
-          />
-
-          <link
-            rel="icon"
-            type="image/png"
-            sizes="32x32"
-            href="/favicon-32x32.png"
-          />
-
-          <link
-            rel="apple-touch-icon"
-            sizes="180x180"
-            href="/apple-touch-icon.png"
-          />
-
-          <link
-            rel="manifest"
-            href="/site.webmanifest"
-          />
-
-          <link
-            rel="shortcut icon"
-            href="/favicon.ico"
-          />
-
-          {/* Android Icons */}
-          <link
-            rel="icon"
-            type="image/png"
-            sizes="192x192"
-            href="/logo192.png"
-          />
-
-          <link
-            rel="icon"
-            type="image/png"
-            sizes="512x512"
-            href="/android-chrome-512x512.png"
-          />
-        </Head>
-
-        <body style={{ margin: 0, padding: 0 }}>
-          <ErrorBoundary>
-            <AuthProvider>
-              <AppLayout>
-                {children}
-              </AppLayout>
-            </AuthProvider>
-          </ErrorBoundary>
-        </body>
-      </html>
-    </>
+    <html lang="en" suppressHydrationWarning>
+      <body style={{ margin: 0, padding: 0 }}>
+        <ErrorBoundary>
+          <AuthProvider>
+            <AppLayout>{children}</AppLayout>
+          </AuthProvider>
+        </ErrorBoundary>
+      </body>
+    </html>
   );
 }
