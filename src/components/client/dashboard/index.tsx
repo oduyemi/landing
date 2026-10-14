@@ -253,10 +253,6 @@ export function ClientDashboard() {
 
             <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
               <div className="max-w-2xl">
-                {/* <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#ededed] bg-[#fafafa] px-3 py-1.5 text-[11px] font-medium text-[#666]">
-                  Your project workspace
-                </div> */}
-
                 <h1 className="text-2xl font-semibold tracking-[-0.045em] text-[#191919] sm:text-3xl lg:text-[34px]">
                   {userLoading
                     ? "Welcome back"

@@ -2,13 +2,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
+  ArrowDownToLine,
   Check,
   ChevronDown,
+  ChevronRight,
+  CloudUpload,
+  File,
+  FileImage,
   FileText,
   FolderOpen,
+  HardDrive,
+  Layers3,
   LoaderCircle,
   Plus,
   RefreshCw,
+  Search,
+  ShieldCheck,
   Upload,
   X,
 } from "lucide-react";
@@ -43,15 +52,41 @@ const ACCEPTED_FILES: Record<ApiFileCategory, string> = {
     ".pdf,.zip,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.json,.psd,.ai,.fig,.sketch,.mp4,.mov",
 };
 
-const EMPTY_UPLOAD_FORM = {
-  category: "image" as ApiFileCategory,
-  assetType: "logo" as BrandAssetType,
-  description: "",
+const CATEGORY_META: Record<
+  ApiFileCategory,
+  {
+    title: string;
+    description: string;
+    icon: typeof File;
+    color: string;
+    softColor: string;
+  }
+> = {
+  image: {
+    title: "Client uploads",
+    description: "Images and visual references",
+    icon: FileImage,
+    color: "text-blue-700",
+    softColor: "bg-blue-50",
+  },
+  "brand-asset": {
+    title: "Brand assets",
+    description: "Logos, icons and brand files",
+    icon: Layers3,
+    color: "text-violet-700",
+    softColor: "bg-violet-50",
+  },
+  deliverable: {
+    title: "Deliverables",
+    description: "Documents and final project files",
+    icon: FileText,
+    color: "text-emerald-700",
+    softColor: "bg-emerald-50",
+  },
 };
 
 function extractArray(payload: unknown, key: string): unknown[] {
   if (Array.isArray(payload)) return payload;
-
   if (!payload || typeof payload !== "object") return [];
 
   const object = payload as Record<string, unknown>;
@@ -67,32 +102,38 @@ export const ClientFiles = () => {
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [files, setFiles] = useState<ClientFile[]>([]);
-
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [filesLoading, setFilesLoading] = useState(false);
   const [projectOpen, setProjectOpen] = useState(false);
-
+  const [projectSearch, setProjectSearch] = useState("");
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [uploadCategory, setUploadCategory] =
-    useState<ApiFileCategory>("image");
-  const [assetType, setAssetType] =
-    useState<BrandAssetType>("logo");
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState<ApiFileCategory>("image");
+  const [assetType, setAssetType] = useState<BrandAssetType>("logo");
   const [description, setDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-
   const [totalFiles, setTotalFiles] = useState<number | null>(null);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
   const projectMenuRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const selectedProject = useMemo(
     () => projects.find((project) => project._id === selectedProjectId),
     [projects, selectedProjectId]
   );
+
+  const filteredProjects = useMemo(() => {
+    const query = projectSearch.trim().toLowerCase();
+
+    if (!query) return projects;
+
+    return projects.filter((project) =>
+      project.title.toLowerCase().includes(query)
+    );
+  }, [projects, projectSearch]);
 
   const loadProjects = useCallback(async () => {
     setProjectsLoading(true);
@@ -114,17 +155,20 @@ export const ClientFiles = () => {
 
       const projectList = extractArray(payload, "projects")
         .map(normalizeProject)
-        .filter((project): project is ProjectOption => project !== null);
+        .filter(
+          (project): project is ProjectOption => project !== null
+        );
 
       setProjects(projectList);
 
       setSelectedProjectId((current) => {
-        // Preserve a valid selection when the list is refreshed.
-        if (current && projectList.some((project) => project._id === current)) {
+        if (
+          current &&
+          projectList.some((project) => project._id === current)
+        ) {
           return current;
         }
 
-        // Support project links such as /client/files?project=<projectId>.
         if (typeof window !== "undefined") {
           const requestedId = new URLSearchParams(
             window.location.search
@@ -234,6 +278,7 @@ export const ClientFiles = () => {
         !projectMenuRef.current.contains(event.target as Node)
       ) {
         setProjectOpen(false);
+        setProjectSearch("");
       }
     }
 
@@ -243,6 +288,26 @@ export const ClientFiles = () => {
       document.removeEventListener("mousedown", handleOutsideClick);
     };
   }, []);
+
+  useEffect(() => {
+    if (!uploadOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !uploading) {
+        closeUploadDialog();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [uploadOpen, uploading]);
 
   const filteredFiles = useMemo(
     () => files.filter((file) => matchesFilter(file, filter)),
@@ -269,8 +334,9 @@ export const ClientFiles = () => {
   const categoryCounts = useMemo(
     () => ({
       "All Files": files.length,
-      "Client Uploads": files.filter((file) => file.category === "image")
-        .length,
+      "Client Uploads": files.filter(
+        (file) => file.category === "image"
+      ).length,
       "Brand Assets": files.filter(
         (file) => file.category === "brand-asset"
       ).length,
@@ -281,11 +347,17 @@ export const ClientFiles = () => {
     [files]
   );
 
+  const storageUsed = useMemo(
+    () => files.reduce((sum, file) => sum + (file.size || 0), 0),
+    [files]
+  );
+
   function resetUploadForm() {
     setUploadCategory("image");
     setAssetType("logo");
     setDescription("");
     setSelectedFile(null);
+    setIsDragging(false);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -309,6 +381,44 @@ export const ClientFiles = () => {
 
     setUploadOpen(false);
     resetUploadForm();
+  }
+
+  function validateAndSelectFile(file: File | null) {
+    if (!file) return;
+
+    setError("");
+
+    if (file.size === 0) {
+      setSelectedFile(null);
+      setError("The selected file is empty.");
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setSelectedFile(null);
+      setError("Files must be 25 MB or smaller.");
+      return;
+    }
+
+    const extension = `.${file.name.split(".").pop()?.toLowerCase()}`;
+    const allowedExtensions = ACCEPTED_FILES[uploadCategory]
+      .split(",")
+      .map((item) => item.trim().toLowerCase());
+
+    if (!allowedExtensions.includes(extension)) {
+      setSelectedFile(null);
+      setError(
+        `This file type is not supported for ${getCategoryLabel(uploadCategory).toLowerCase()}.`
+      );
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      return;
+    }
+
+    setSelectedFile(file);
   }
 
   async function handleUpload(event: React.FormEvent<HTMLFormElement>) {
@@ -379,6 +489,7 @@ export const ClientFiles = () => {
 
       setUploadOpen(false);
       resetUploadForm();
+
       setFilter(
         uploadCategory === "image"
           ? "Client Uploads"
@@ -387,7 +498,7 @@ export const ClientFiles = () => {
             : "Deliverables"
       );
 
-      setNotice("File uploaded successfully.");
+      setNotice("Your file has been uploaded successfully.");
       await loadFiles();
     } catch (err) {
       setError(
@@ -414,196 +525,301 @@ export const ClientFiles = () => {
   const loading = projectsLoading || filesLoading;
 
   return (
-    <div className="min-h-full bg-[#fafafa]">
-      <div className="mx-auto max-w-[1180px] px-5 py-8 sm:px-7 lg:px-9">
-        <header className="flex flex-col gap-5 border-b border-[#e8e8e8] pb-6 sm:flex-row sm:items-end sm:justify-between">
+    <div className="min-h-full bg-[#f7f8fa] text-[#172033]">
+      <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 sm:py-8 lg:px-9 lg:py-10">
+        {/* Page heading */}
+        <header className="flex flex-col gap-5 border-b border-[#e6e9ef] pb-7 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-[#999]">
-              Client workspace
-            </p>
+            <div className="flex items-center gap-2 text-[11px] font-medium text-[#69758a]">
+              <FolderOpen className="h-4 w-4" />
+              <span>Workspace</span>
+              <ChevronRight className="h-3 w-3 text-[#a3acba]" />
+              <span className="text-[#273449]">Files</span>
+            </div>
 
-            <div className="mt-1.5 flex items-center gap-2">
-              <h1 className="text-[22px] font-semibold tracking-[-0.04em] text-[#171717]">
-                Files
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <h1 className="text-3xl font-semibold tracking-[-0.045em] text-[#172033] sm:text-[36px]">
+                Project files
               </h1>
 
-              <span className="rounded-full bg-[#ededed] px-1.5 py-0.5 text-[10px] font-medium text-[#777]">
-                {totalFiles ?? files.length}
+              <span className="inline-flex h-7 items-center rounded-full border border-[#e0e6ef] bg-white px-3 text-xs font-semibold tabular-nums text-[#536176] shadow-sm">
+                {totalFiles ?? files.length} files
               </span>
             </div>
 
-            <p className="mt-1 text-[10px] text-[#888]">
-              Files shared between you and your project team.
+            <p className="mt-2 max-w-xl text-sm leading-6 text-[#778297]">
+              Keep your project documents, creative assets and shared
+              deliverables organized in one place.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Project selector */}
-            <div className="relative" ref={projectMenuRef}>
-              <button
-                type="button"
-                disabled={projectsLoading || projects.length === 0}
-                onClick={() => setProjectOpen((value) => !value)}
-                className="flex h-9 items-center gap-2 rounded-[6px] border border-[#e3e3e3] bg-white px-3 text-[9px] font-medium text-[#444] transition-colors hover:border-[#ccc] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <span className="max-w-[180px] truncate">
-                  {projectsLoading
-                    ? "Loading projects..."
-                    : selectedProject?.title ?? "No projects available"}
-                </span>
-
-                <ChevronDown
-                  className={[
-                    "h-3 w-3 shrink-0 text-[#999] transition-transform",
-                    projectOpen ? "rotate-180" : "",
-                  ].join(" ")}
-                  strokeWidth={1.7}
-                />
-              </button>
-
-              {projectOpen && (
-                <div className="absolute right-0 top-[calc(100%+6px)] z-30 max-h-[280px] w-[240px] overflow-y-auto rounded-[7px] border border-[#e5e5e5] bg-white p-1 shadow-[0_10px_30px_rgba(0,0,0,0.08)]">
-                  {projects.map((project) => (
-                    <button
-                      key={project._id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedProjectId(project._id);
-                        setProjectOpen(false);
-                        setError("");
-                        setNotice("");
-                      }}
-                      className="flex w-full items-center justify-between gap-3 rounded-[5px] px-3 py-2.5 text-left text-[10px] text-[#333] hover:bg-[#f7f7f7]"
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate font-medium">
-                          {project.title}
-                        </span>
-                        {project.status && (
-                          <span className="mt-0.5 block text-[9px] text-[#999]">
-                            {project.status}
-                          </span>
-                        )}
-                      </span>
-
-                      {selectedProjectId === project._id && (
-                        <Check className="h-3.5 w-3.5 shrink-0 text-[#222]" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
               onClick={() => {
                 setError("");
                 setNotice("");
+                void loadProjects();
                 void loadFiles();
               }}
-              disabled={!selectedProjectId || loading}
-              aria-label="Refresh files"
-              title="Refresh files"
-              className="flex h-9 w-9 items-center justify-center rounded-[6px] border border-[#e3e3e3] bg-white text-[#666] transition-colors hover:border-[#ccc] hover:text-[#222] disabled:opacity-50"
+              disabled={loading}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#e1e5ec] bg-white px-4 text-sm font-medium text-[#536176] shadow-sm transition hover:border-[#cbd3df] hover:bg-[#fbfcfe] hover:text-[#172033] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <RefreshCw
-                className={[
-                  "h-3.5 w-3.5",
-                  loading ? "animate-spin" : "",
-                ].join(" ")}
-                strokeWidth={1.7}
+                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
               />
+              <span className="hidden sm:inline">Refresh</span>
             </button>
 
             <button
               type="button"
               onClick={openUploadDialog}
               disabled={!selectedProjectId || projectsLoading}
-              className="flex h-9 items-center gap-1.5 rounded-[6px] bg-[#111] px-3 text-[9px] font-medium text-white transition-colors hover:bg-[#2a2a2a] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#111] px-5 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(23,43,77,0.14)] transition hover:bg-[#223c65] hover:shadow-[0_6px_16px_rgba(23,43,77,0.2)] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Upload className="h-3 w-3" strokeWidth={1.8} />
-              Upload Files
+              <Plus className="h-4 w-4" />
+              Upload files
             </button>
           </div>
         </header>
 
-        {/* Feedback messages */}
+        {/* Feedback */}
         {error && (
-          <div
-            role="alert"
-            className="mt-5 flex items-start gap-2 rounded-[7px] border border-[#f1ceca] bg-[#fff7f6] px-3 py-3 text-[10px] text-[#a52b20]"
-          >
-            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <p className="min-w-0 flex-1">{error}</p>
-            <button
-              type="button"
-              onClick={() => setError("")}
-              aria-label="Dismiss error"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          <FeedbackBanner
+            type="error"
+            message={error}
+            onDismiss={() => setError("")}
+          />
         )}
 
         {notice && !error && (
-          <div
-            role="status"
-            className="mt-5 flex items-center gap-2 rounded-[7px] border border-[#d7e8dc] bg-[#f5fbf6] px-3 py-3 text-[10px] text-[#276749]"
-          >
-            <Check className="h-3.5 w-3.5 shrink-0" />
-            <p className="flex-1">{notice}</p>
-            <button
-              type="button"
-              onClick={() => setNotice("")}
-              aria-label="Dismiss message"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          <FeedbackBanner
+            type="success"
+            message={notice}
+            onDismiss={() => setNotice("")}
+          />
         )}
 
-        {/* Filters */}
-        <div className="mt-6 flex items-center gap-1 overflow-x-auto border-b border-[#e8e8e8]">
-          {filters.map((item) => {
-            const active = filter === item;
+        {/* Workspace summary */}
+        <section className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <SummaryCard
+            icon={FolderOpen}
+            label="Total files"
+            value={totalFiles ?? files.length}
+            detail="In this project workspace"
+            iconClass="bg-blue-50 text-blue-700"
+          />
 
-            return (
+          <SummaryCard
+            icon={HardDrive}
+            label="File categories"
+            value={Object.values(categoryCounts).slice(1).filter(Boolean).length}
+            detail="Images, brand assets and deliverables"
+            iconClass="bg-violet-50 text-violet-700"
+          />
+
+          <SummaryCard
+            icon={ShieldCheck}
+            label="Storage overview"
+            value={formatFileSize(storageUsed)}
+            detail="Combined size of loaded files"
+            iconClass="bg-emerald-50 text-emerald-700"
+          />
+        </section>
+
+        {/* Project selection */}
+        <section className="mt-7 overflow-visible rounded-2xl border border-[#e3e8f0] bg-white shadow-[0_2px_8px_rgba(20,35,60,0.025)]">
+          <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#edf2fa] text-[#28456f]">
+                <FolderOpen className="h-5 w-5" />
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.09em] text-[#8792a5]">
+                  Current project
+                </p>
+
+                <p className="mt-1 truncate text-lg font-semibold tracking-[-0.025em] text-[#172033]">
+                  {projectsLoading
+                    ? "Loading your projects..."
+                    : selectedProject?.title ?? "No project selected"}
+                </p>
+
+                <p className="mt-1 text-xs text-[#8792a5]">
+                  {selectedProject?.status
+                    ? `Project status · ${selectedProject.status}`
+                    : projects.length
+                      ? "Choose a project to view its files"
+                      : "Your available projects will appear here"}
+                </p>
+              </div>
+            </div>
+
+            <div className="relative w-full sm:w-auto" ref={projectMenuRef}>
               <button
-                key={item}
                 type="button"
-                onClick={() => setFilter(item)}
-                className={[
-                  "relative shrink-0 px-3 pb-3 pt-1 text-[10px] font-medium transition-colors",
-                  active
-                    ? "text-[#111]"
-                    : "text-[#999] hover:text-[#444]",
-                ].join(" ")}
+                disabled={projectsLoading || projects.length === 0}
+                aria-expanded={projectOpen}
+                aria-haspopup="listbox"
+                onClick={() => {
+                  setProjectOpen((value) => !value);
+                  setProjectSearch("");
+                }}
+                className="flex h-11 w-full items-center justify-between gap-4 rounded-xl border border-[#e0e5ed] bg-white px-4 text-sm font-medium text-[#35435a] transition hover:border-[#b9c5d6] hover:bg-[#fbfcfe] disabled:cursor-not-allowed disabled:opacity-50 sm:min-w-[210px]"
               >
-                <span className="flex items-center gap-1.5">
-                  {item}
-                  <span
-                    className={[
-                      "rounded-full px-1.5 py-0.5 text-[9px]",
-                      active
-                        ? "bg-[#ededed] text-[#555]"
-                        : "bg-[#f0f0f0] text-[#999]",
-                    ].join(" ")}
-                  >
-                    {categoryCounts[item]}
-                  </span>
+                <span className="truncate">
+                  {projects.length > 1 ? "Switch project" : "Project options"}
                 </span>
-
-                {active && (
-                  <span className="absolute bottom-0 left-2 right-2 h-[1.5px] rounded-full bg-[#111]" />
-                )}
+                <ChevronDown
+                  className={`h-4 w-4 shrink-0 text-[#8995a7] transition-transform ${
+                    projectOpen ? "rotate-180" : ""
+                  }`}
+                />
               </button>
-            );
-          })}
-        </div>
+
+              {projectOpen && (
+                <div
+                  role="listbox"
+                  aria-label="Choose a project"
+                  className="absolute right-0 top-[calc(100%+8px)] z-40 w-[min(320px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#e1e6ef] bg-white p-2 shadow-[0_16px_48px_rgba(24,39,65,0.14)]"
+                >
+                  {projects.length > 4 && (
+                    <div className="relative mb-2">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9aa5b5]" />
+                      <input
+                        value={projectSearch}
+                        onChange={(event) =>
+                          setProjectSearch(event.target.value)
+                        }
+                        placeholder="Search projects..."
+                        className="h-10 w-full rounded-lg border border-[#e7ebf1] bg-[#fafbfd] pl-9 pr-3 text-sm text-[#35435a] outline-none transition placeholder:text-[#9aa5b5] focus:border-[#aabbd3] focus:bg-white"
+                      />
+                    </div>
+                  )}
+
+                  <div className="max-h-[280px] overflow-y-auto">
+                    {filteredProjects.map((project) => {
+                      const isSelected =
+                        selectedProjectId === project._id;
+
+                      return (
+                        <button
+                          key={project._id}
+                          type="button"
+                          role="option"
+                          aria-selected={isSelected}
+                          onClick={() => {
+                            setSelectedProjectId(project._id);
+                            setProjectOpen(false);
+                            setProjectSearch("");
+                            setError("");
+                            setNotice("");
+                            setFilter("All Files");
+                          }}
+                          className={`flex w-full items-center gap-3 rounded-xl p-3 text-left transition ${
+                            isSelected
+                              ? "bg-[#edf2fa]"
+                              : "hover:bg-[#f6f8fb]"
+                          }`}
+                        >
+                          <div
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                              isSelected
+                                ? "bg-[#dce6f5] text-[#28456f]"
+                                : "bg-[#f0f3f7] text-[#78869b]"
+                            }`}
+                          >
+                            <FolderOpen className="h-4 w-4" />
+                          </div>
+
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-medium text-[#29364c]">
+                              {project.title}
+                            </span>
+                            {project.status && (
+                              <span className="mt-1 block text-xs text-[#8792a5]">
+                                {project.status}
+                              </span>
+                            )}
+                          </span>
+
+                          {isSelected && (
+                            <Check className="h-4 w-4 shrink-0 text-[#28456f]" />
+                          )}
+                        </button>
+                      );
+                    })}
+
+                    {filteredProjects.length === 0 && (
+                      <p className="px-3 py-6 text-center text-sm text-[#8792a5]">
+                        No projects match your search.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* File filters */}
+        <section className="mt-7">
+          <div className="flex flex-col gap-4 border-b border-[#e3e8f0] sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold tracking-[-0.025em] text-[#202d42]">
+                Your files
+              </h2>
+              <p className="mt-1 pb-4 text-sm text-[#8792a5]">
+                Browse everything shared in your workspace.
+              </p>
+            </div>
+
+            <div
+              role="tablist"
+              aria-label="Filter project files"
+              className="-mb-px flex max-w-full gap-1 overflow-x-auto"
+            >
+              {filters.map((item) => {
+                const active = filter === item;
+
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setFilter(item)}
+                    className={`relative flex shrink-0 items-center gap-2 rounded-t-lg px-3 py-3 text-sm font-medium transition sm:px-4 ${
+                      active
+                        ? "text-[#243c62]"
+                        : "text-[#8994a6] hover:text-[#3e4d63]"
+                    }`}
+                  >
+                    {item}
+
+                    <span
+                      className={`inline-flex min-w-6 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${
+                        active
+                          ? "bg-[#e9eff8] text-[#28456f]"
+                          : "bg-[#edf0f4] text-[#7d899a]"
+                      }`}
+                    >
+                      {categoryCounts[item]}
+                    </span>
+
+                    {active && (
+                      <span className="absolute inset-x-2 bottom-0 h-[2px] rounded-full bg-[#28456f]" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
 
         {/* File content */}
-        <div className="mt-7 space-y-8">
+        <div className="mt-6 space-y-8">
           {filesLoading && files.length === 0 ? (
             <LoadingState />
           ) : !projectsLoading && projects.length === 0 ? (
@@ -612,8 +828,9 @@ export const ClientFiles = () => {
             <>
               {imageFiles.length > 0 && (
                 <FileSection
-                  title="Client Uploads"
-                  icon={FolderOpen}
+                  title="Client uploads"
+                  description={CATEGORY_META.image.description}
+                  icon={FileImage}
                   files={imageFiles}
                   onChanged={handleFileChanged}
                   onError={handleFileError}
@@ -622,8 +839,9 @@ export const ClientFiles = () => {
 
               {brandFiles.length > 0 && (
                 <FileSection
-                  title="Brand Assets"
-                  icon={FileText}
+                  title="Brand assets"
+                  description={CATEGORY_META["brand-asset"].description}
+                  icon={Layers3}
                   files={brandFiles}
                   onChanged={handleFileChanged}
                   onError={handleFileError}
@@ -633,6 +851,7 @@ export const ClientFiles = () => {
               {deliverableFiles.length > 0 && (
                 <FileSection
                   title="Deliverables"
+                  description={CATEGORY_META.deliverable.description}
                   icon={FileText}
                   files={deliverableFiles}
                   onChanged={handleFileChanged}
@@ -648,255 +867,472 @@ export const ClientFiles = () => {
               )}
 
               {filesLoading && files.length > 0 && (
-                <p className="flex items-center justify-center gap-2 py-3 text-[10px] text-[#999]">
-                  <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                  Refreshing files...
-                </p>
+                <div className="flex items-center justify-center gap-2 rounded-xl border border-[#e3e8f0] bg-white py-4 text-sm text-[#8792a5]">
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                  Refreshing your files...
+                </div>
               )}
             </>
           )}
         </div>
-      </div>
 
-      {/* Upload dialog */}
-      {uploadOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
-              closeUploadDialog();
-            }
-          }}
-        >
+        {/* Upload dialog */}
+        {uploadOpen && (
           <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="upload-dialog-title"
-            className="my-auto w-full max-w-[480px] overflow-hidden rounded-[10px] border border-[#e8e8e8] bg-white shadow-[0_24px_80px_rgba(0,0,0,0.18)]"
+            className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#101827]/55 p-3 backdrop-blur-[3px] sm:p-6"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                closeUploadDialog();
+              }
+            }}
           >
-            <div className="flex items-start justify-between border-b border-[#eee] px-5 py-4 sm:px-6">
-              <div>
-                <h2
-                  id="upload-dialog-title"
-                  className="text-[15px] font-semibold tracking-[-0.03em] text-[#171717]"
-                >
-                  Upload a file
-                </h2>
-                <p className="mt-1 text-[10px] text-[#888]">
-                  Add a file to {selectedProject?.title ?? "your project"}.
-                </p>
+            <div
+              ref={dialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="upload-dialog-title"
+              className="my-auto w-full max-w-[560px] overflow-hidden rounded-2xl border border-white/70 bg-white shadow-[0_28px_100px_rgba(12,25,46,0.28)]"
+            >
+              <div className="relative overflow-hidden bg-[#111] px-5 py-6 text-white sm:px-7">
+                <div className="absolute -right-8 -top-14 h-40 w-40 rounded-full border border-white/10" />
+                <div className="absolute -right-1 -top-5 h-28 w-28 rounded-full border border-white/10" />
+
+                <div className="relative flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3.5">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10">
+                      <CloudUpload className="h-5 w-5" />
+                    </div>
+
+                    <div>
+                      <h2
+                        id="upload-dialog-title"
+                        className="text-xl font-semibold tracking-[-0.035em]"
+                      >
+                        Upload a file
+                      </h2>
+
+                      <p className="mt-1.5 max-w-[330px] text-sm leading-5 text-white/70">
+                        Add something new to{" "}
+                        <span className="font-medium text-white">
+                          {selectedProject?.title ?? "your project"}
+                        </span>
+                        .
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={uploading}
+                    onClick={closeUploadDialog}
+                    aria-label="Close upload dialog"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/70 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
 
-              <button
-                type="button"
-                disabled={uploading}
-                onClick={closeUploadDialog}
-                aria-label="Close upload dialog"
-                className="flex h-7 w-7 items-center justify-center rounded-full text-[#888] hover:bg-[#f2f2f2] hover:text-[#222] disabled:opacity-50"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleUpload} className="space-y-5 p-5 sm:p-6">
-              <div>
-                <label
-                  htmlFor="upload-category"
-                  className="mb-2 block text-[10px] font-medium text-[#444]"
-                >
-                  File category
-                </label>
-
-                <select
-                  id="upload-category"
-                  value={uploadCategory}
-                  disabled={uploading}
-                  onChange={(event) => {
-                    const category = event.target.value as ApiFileCategory;
-
-                    setUploadCategory(category);
-                    setSelectedFile(null);
-
-                    if (fileInputRef.current) {
-                      fileInputRef.current.value = "";
-                    }
-
-                    setError("");
-                  }}
-                  className="h-10 w-full rounded-[6px] border border-[#e3e3e3] bg-white px-3 text-[11px] text-[#333] outline-none transition-colors focus:border-[#999] disabled:opacity-60"
-                >
-                  <option value="image">Client Uploads — images</option>
-                  <option value="brand-asset">Brand Assets — logos and icons</option>
-                  <option value="deliverable">Deliverables — documents and files</option>
-                </select>
-
-                <p className="mt-1.5 text-[9px] text-[#999]">
-                  {UPLOAD_LIMITS[uploadCategory]} files maximum in this
-                  category per project.
-                </p>
-              </div>
-
-              {uploadCategory === "brand-asset" && (
+              <form onSubmit={handleUpload} className="space-y-5 p-5 sm:p-7">
                 <div>
                   <label
-                    htmlFor="upload-asset-type"
-                    className="mb-2 block text-[10px] font-medium text-[#444]"
+                    htmlFor="upload-category"
+                    className="mb-2 block text-sm font-semibold text-[#344258]"
                   >
-                    Brand asset type
+                    Where should this file go?
                   </label>
 
                   <select
-                    id="upload-asset-type"
-                    value={assetType}
+                    id="upload-category"
+                    value={uploadCategory}
                     disabled={uploading}
-                    onChange={(event) =>
-                      setAssetType(event.target.value as BrandAssetType)
-                    }
-                    className="h-10 w-full rounded-[6px] border border-[#e3e3e3] bg-white px-3 text-[11px] text-[#333] outline-none focus:border-[#999] disabled:opacity-60"
+                    onChange={(event) => {
+                      const category = event.target.value as ApiFileCategory;
+
+                      setUploadCategory(category);
+                      setSelectedFile(null);
+                      setError("");
+
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = "";
+                      }
+                    }}
+                    className="h-12 w-full rounded-xl border border-[#dfe5ee] bg-white px-3.5 text-sm text-[#344258] outline-none transition focus:border-[#8298b9] focus:ring-4 focus:ring-[#edf2fa] disabled:opacity-60"
                   >
-                    <option value="logo">Logo</option>
-                    <option value="icon">Icon</option>
-                    <option value="favicon">Favicon</option>
-                    <option value="other">Other</option>
+                    <option value="image">Client uploads — images</option>
+                    <option value="brand-asset">
+                      Brand assets — logos and icons
+                    </option>
+                    <option value="deliverable">
+                      Deliverables — documents and files
+                    </option>
                   </select>
+
+                  <p className="mt-2 flex items-center gap-1.5 text-xs text-[#8792a5]">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Up to {UPLOAD_LIMITS[uploadCategory]} files in this
+                    category per project.
+                  </p>
                 </div>
-              )}
 
-              <div>
-                <label
-                  htmlFor="upload-description"
-                  className="mb-2 block text-[10px] font-medium text-[#444]"
-                >
-                  Description <span className="font-normal text-[#999]">(optional)</span>
-                </label>
+                {uploadCategory === "brand-asset" && (
+                  <div>
+                    <label
+                      htmlFor="upload-asset-type"
+                      className="mb-2 block text-sm font-semibold text-[#344258]"
+                    >
+                      Brand asset type
+                    </label>
 
-                <textarea
-                  id="upload-description"
-                  value={description}
-                  disabled={uploading}
-                  onChange={(event) => setDescription(event.target.value)}
-                  maxLength={2000}
-                  rows={3}
-                  placeholder="What is this file for?"
-                  className="w-full resize-y rounded-[6px] border border-[#e3e3e3] bg-white px-3 py-2.5 text-[11px] text-[#333] outline-none placeholder:text-[#aaa] focus:border-[#999] disabled:opacity-60"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="upload-file"
-                  className="mb-2 block text-[10px] font-medium text-[#444]"
-                >
-                  Choose file
-                </label>
-
-                <input
-                  ref={fileInputRef}
-                  id="upload-file"
-                  type="file"
-                  required
-                  disabled={uploading}
-                  accept={ACCEPTED_FILES[uploadCategory]}
-                  onChange={(event) => {
-                    const nextFile = event.target.files?.[0] ?? null;
-                    setSelectedFile(nextFile);
-                    setError("");
-                  }}
-                  className="block w-full rounded-[6px] border border-[#e3e3e3] bg-white p-2 text-[10px] text-[#555] file:mr-3 file:rounded-[4px] file:border-0 file:bg-[#f1f1f1] file:px-3 file:py-2 file:text-[10px] file:font-medium file:text-[#333] hover:file:bg-[#e7e7e7] disabled:opacity-60"
-                />
-
-                <p className="mt-2 text-[9px] leading-4 text-[#999]">
-                  Maximum size: 25 MB.{" "}
-                  {uploadCategory === "image"
-                    ? "Supported: JPG, PNG, WebP, GIF and AVIF."
-                    : uploadCategory === "brand-asset"
-                      ? "Supported: SVG, ICO, PNG, JPG and JPEG."
-                      : "Supported: PDF, Office documents, ZIP, CSV, JSON, and other permitted formats."}
-                </p>
-
-                {selectedFile && (
-                  <div className="mt-3 flex items-center gap-2 rounded-[6px] bg-[#f7f7f7] p-3">
-                    <FileText className="h-4 w-4 shrink-0 text-[#777]" />
-                    <span className="min-w-0 flex-1 truncate text-[10px] text-[#444]">
-                      {selectedFile.name}
-                    </span>
-                    <span className="shrink-0 text-[9px] text-[#999]">
-                      {formatFileSize(selectedFile.size)}
-                    </span>
+                    <select
+                      id="upload-asset-type"
+                      value={assetType}
+                      disabled={uploading}
+                      onChange={(event) =>
+                        setAssetType(event.target.value as BrandAssetType)
+                      }
+                      className="h-12 w-full rounded-xl border border-[#dfe5ee] bg-white px-3.5 text-sm text-[#344258] outline-none transition focus:border-[#8298b9] focus:ring-4 focus:ring-[#edf2fa] disabled:opacity-60"
+                    >
+                      <option value="logo">Logo</option>
+                      <option value="icon">Icon</option>
+                      <option value="favicon">Favicon</option>
+                      <option value="other">Other</option>
+                    </select>
                   </div>
                 )}
-              </div>
 
-              {error && (
-                <p role="alert" className="text-[10px] leading-4 text-[#b42318]">
-                  {error}
-                </p>
-              )}
+                <div>
+                  <label
+                    htmlFor="upload-description"
+                    className="mb-2 block text-sm font-semibold text-[#344258]"
+                  >
+                    Description{" "}
+                    <span className="font-normal text-[#98a2b3]">
+                      (optional)
+                    </span>
+                  </label>
 
-              <div className="flex items-center justify-end gap-2 border-t border-[#eee] pt-4">
-                <button
-                  type="button"
-                  disabled={uploading}
-                  onClick={closeUploadDialog}
-                  className="h-9 rounded-[6px] border border-[#e3e3e3] px-4 text-[10px] font-medium text-[#555] transition-colors hover:bg-[#f7f7f7] disabled:opacity-50"
-                >
-                  Cancel
-                </button>
+                  <textarea
+                    id="upload-description"
+                    value={description}
+                    disabled={uploading}
+                    onChange={(event) => setDescription(event.target.value)}
+                    maxLength={2000}
+                    rows={3}
+                    placeholder="Add context to help your project team understand this file..."
+                    className="w-full resize-y rounded-xl border border-[#dfe5ee] bg-white px-3.5 py-3 text-sm leading-6 text-[#344258] outline-none transition placeholder:text-[#a0aaba] focus:border-[#8298b9] focus:ring-4 focus:ring-[#edf2fa] disabled:opacity-60"
+                  />
+                </div>
 
-                <button
-                  type="submit"
-                  disabled={uploading || !selectedFile}
-                  className="flex h-9 items-center justify-center gap-2 rounded-[6px] bg-[#111] px-4 text-[10px] font-medium text-white transition-colors hover:bg-[#2a2a2a] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {uploading ? (
-                    <>
-                      <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-3.5 w-3.5" />
-                      Upload file
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+                <div>
+                  <label
+                    htmlFor="upload-file"
+                    className="mb-2 block text-sm font-semibold text-[#344258]"
+                  >
+                    Select your file
+                  </label>
+
+                  <div
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      if (!uploading) setIsDragging(true);
+                    }}
+                    onDragLeave={(event) => {
+                      if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                        setIsDragging(false);
+                      }
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      setIsDragging(false);
+
+                      if (!uploading) {
+                        validateAndSelectFile(
+                          event.dataTransfer.files?.[0] ?? null
+                        );
+                      }
+                    }}
+                    className={`rounded-2xl border-2 border-dashed p-4 transition sm:p-5 ${
+                      isDragging
+                        ? "border-[#607fa9] bg-[#edf3fc]"
+                        : selectedFile
+                          ? "border-[#b8d7c5] bg-[#f5faf7]"
+                          : "border-[#dce3ed] bg-[#fafbfd] hover:border-[#b7c6da] hover:bg-[#f7f9fc]"
+                    }`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      id="upload-file"
+                      type="file"
+                      required
+                      disabled={uploading}
+                      accept={ACCEPTED_FILES[uploadCategory]}
+                      onChange={(event) => {
+                        validateAndSelectFile(
+                          event.target.files?.[0] ?? null
+                        );
+                      }}
+                      className="sr-only"
+                    />
+
+                    {selectedFile ? (
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#426b55] shadow-sm">
+                          <FileText className="h-5 w-5" />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-[#344258]">
+                            {selectedFile.name}
+                          </p>
+                          <p className="mt-1 text-xs text-[#718176]">
+                            {formatFileSize(selectedFile.size)} · Ready to
+                            upload
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          disabled={uploading}
+                          onClick={() => {
+                            setSelectedFile(null);
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = "";
+                            }
+                          }}
+                          aria-label="Remove selected file"
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#78869b] transition hover:bg-white hover:text-[#344258]"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center text-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#536f98] shadow-sm">
+                          <Upload className="h-5 w-5" />
+                        </div>
+
+                        <p className="mt-3 text-sm font-semibold text-[#344258]">
+                          Drop your file here
+                        </p>
+
+                        <p className="mt-1 text-xs text-[#8792a5]">
+                          or choose a file from your device
+                        </p>
+
+                        <label
+                          htmlFor="upload-file"
+                          className={`mt-4 inline-flex h-9 cursor-pointer items-center justify-center rounded-lg border border-[#dfe5ee] bg-white px-4 text-xs font-semibold text-[#344258] shadow-sm transition hover:border-[#bac7d8] hover:bg-[#f7f9fc] ${
+                            uploading
+                              ? "pointer-events-none opacity-50"
+                              : ""
+                          }`}
+                        >
+                          Browse files
+                        </label>
+                      </div>
+                    )}
+                  </div>
+
+                  <p className="mt-2.5 text-xs leading-5 text-[#8792a5]">
+                    Maximum size: 25 MB.{" "}
+                    {uploadCategory === "image"
+                      ? "Supported: JPG, PNG, WebP, GIF and AVIF."
+                      : uploadCategory === "brand-asset"
+                        ? "Supported: SVG, ICO, PNG, JPG and JPEG."
+                        : "Supported: PDF, Office documents, ZIP, CSV, JSON and other permitted formats."}
+                  </p>
+                </div>
+
+                {error && (
+                  <div
+                    role="alert"
+                    className="flex items-start gap-2.5 rounded-xl border border-[#f0d0cc] bg-[#fff7f6] p-3.5 text-sm text-[#a52b20]"
+                  >
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <p className="min-w-0 flex-1 leading-5">{error}</p>
+                    <button
+                      type="button"
+                      onClick={() => setError("")}
+                      aria-label="Dismiss error"
+                      className="shrink-0 text-[#b65b52] hover:text-[#8c241b]"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex flex-col-reverse gap-2 border-t border-[#edf0f4] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="flex items-center gap-1.5 text-xs text-[#8792a5]">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Shared with your project workspace
+                  </p>
+
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      disabled={uploading}
+                      onClick={closeUploadDialog}
+                      className="h-11 rounded-xl border border-[#dfe5ee] bg-white px-4 text-sm font-medium text-[#536176] transition hover:bg-[#f7f9fc] disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={uploading || !selectedFile}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#111] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#223c65] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {uploading ? (
+                        <>
+                          <LoaderCircle className="h-4 w-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4" />
+                          Upload file
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
 
+function SummaryCard({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  iconClass,
+}: {
+  icon: typeof File;
+  label: string;
+  value: string | number;
+  detail: string;
+  iconClass: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-[#e3e8f0] bg-white p-5 shadow-[0_2px_8px_rgba(20,35,60,0.025)] transition hover:border-[#d5ddea] hover:shadow-[0_5px_18px_rgba(20,35,60,0.045)] sm:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-[#778297]">{label}</p>
+          <p className="mt-3 break-words text-2xl font-semibold tracking-[-0.045em] text-[#202d42] sm:text-[28px]">
+            {value}
+          </p>
+        </div>
+
+        <div
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconClass}`}
+        >
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+
+      <p className="mt-3 text-xs leading-5 text-[#8994a6]">{detail}</p>
+    </div>
+  );
+}
+
+function FeedbackBanner({
+  type,
+  message,
+  onDismiss,
+}: {
+  type: "error" | "success";
+  message: string;
+  onDismiss: () => void;
+}) {
+  const isError = type === "error";
+
+  return (
+    <div
+      role={isError ? "alert" : "status"}
+      className={`mt-5 flex items-start gap-3 rounded-xl border px-4 py-3.5 text-sm ${
+        isError
+          ? "border-[#f0d0cc] bg-[#fff7f6] text-[#a52b20]"
+          : "border-[#d5e9dc] bg-[#f3faf5] text-[#276749]"
+      }`}
+    >
+      {isError ? (
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+      ) : (
+        <Check className="mt-0.5 h-4 w-4 shrink-0" />
+      )}
+
+      <p className="min-w-0 flex-1 leading-5">{message}</p>
+
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Dismiss message"
+        className="shrink-0 opacity-70 transition hover:opacity-100"
+      >
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
 function FileSection({
   title,
+  description,
   icon: Icon,
   files,
   onChanged,
   onError,
 }: {
   title: string;
-  icon: typeof FolderOpen;
+  description: string;
+  icon: typeof File;
   files: ClientFile[];
   onChanged: () => void;
   onError: (message: string) => void;
 }) {
+  const meta = Object.values(CATEGORY_META).find(
+    (item) => item.title.toLowerCase() === title.toLowerCase()
+  );
+
   return (
     <section>
-      <div className="mb-3 flex items-center gap-2">
-        <Icon className="h-3.5 w-3.5 text-[#777]" strokeWidth={1.6} />
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+              meta?.softColor ?? "bg-[#eef2f7]"
+            } ${meta?.color ?? "text-[#536176]"}`}
+          >
+            <Icon className="h-[18px] w-[18px]" />
+          </div>
 
-        <h2 className="text-[11px] font-semibold text-[#222]">
-          {title}
-        </h2>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-semibold text-[#253249]">
+                {title}
+              </h2>
 
-        <span className="rounded-full bg-[#ededed] px-1.5 py-0.5 text-[10px] font-medium text-[#888]">
-          {files.length}
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#eaf0f7] px-1.5 text-[11px] font-semibold tabular-nums text-[#536984]">
+                {files.length}
+              </span>
+            </div>
+
+            <p className="mt-0.5 text-xs text-[#8792a5]">{description}</p>
+          </div>
+        </div>
+
+        <span className="text-xs text-[#8792a5]">
+          {files.length} {files.length === 1 ? "item" : "items"}
         </span>
       </div>
 
-      <div className="overflow-visible rounded-[8px] border border-[#e6e6e6] bg-white">
+      <div className="overflow-hidden rounded-2xl border border-[#e3e8f0] bg-white shadow-[0_2px_8px_rgba(20,35,60,0.025)]">
         {files.map((file) => (
           <FileRow
             key={file.id}
@@ -912,32 +1348,42 @@ function FileSection({
 
 function LoadingState() {
   return (
-    <div className="flex min-h-[240px] flex-col items-center justify-center rounded-[8px] border border-[#e6e6e6] bg-white text-center">
-      <LoaderCircle className="h-5 w-5 animate-spin text-[#777]" />
-      <p className="mt-3 text-[11px] font-medium text-[#444]">
-        Loading project files
+    <div className="rounded-2xl border border-[#e3e8f0] bg-white px-5 py-16 text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#edf2fa] text-[#28456f]">
+        <LoaderCircle className="h-6 w-6 animate-spin" />
+      </div>
+
+      <p className="mt-5 text-base font-semibold text-[#29364c]">
+        Loading your project files
       </p>
-      <p className="mt-1 text-[9px] text-[#999]">
+
+      <p className="mt-2 text-sm text-[#8792a5]">
         Getting the latest files from your workspace.
       </p>
+
+      <div className="mx-auto mt-7 max-w-md space-y-3">
+        <div className="h-12 animate-pulse rounded-xl bg-[#f0f3f7]" />
+        <div className="h-12 animate-pulse rounded-xl bg-[#f0f3f7]" />
+        <div className="h-12 animate-pulse rounded-xl bg-[#f0f3f7]" />
+      </div>
     </div>
   );
 }
 
 function NoProjectsState() {
   return (
-    <div className="flex min-h-[260px] flex-col items-center justify-center rounded-[8px] border border-dashed border-[#ddd] bg-white px-5 text-center">
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f4f4f4]">
-        <FolderOpen className="h-4 w-4 text-[#999]" strokeWidth={1.6} />
+    <div className="rounded-2xl border border-dashed border-[#d7dfeb] bg-white px-5 py-16 text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#edf2fa] text-[#536f98]">
+        <FolderOpen className="h-6 w-6" />
       </div>
 
-      <p className="mt-3 text-[11px] font-medium text-[#444]">
-        No projects available
-      </p>
+      <h3 className="mt-5 text-lg font-semibold tracking-[-0.025em] text-[#29364c]">
+        No projects available yet
+      </h3>
 
-      <p className="mt-1 max-w-[260px] text-[9px] leading-4 text-[#999]">
-        Files are organized by project. Once a project is available to your
-        account, its shared files will appear here.
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#8792a5]">
+        Files are organized by project. Once a project is available to
+        your account, its shared files will appear here.
       </p>
     </div>
   );
@@ -951,28 +1397,32 @@ function EmptyState({
   onUpload: () => void;
 }) {
   return (
-    <div className="mt-8 flex min-h-[260px] flex-col items-center justify-center rounded-[8px] border border-dashed border-[#ddd] bg-white px-5 text-center">
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f4f4f4]">
-        <FileText className="h-4 w-4 text-[#999]" strokeWidth={1.6} />
+    <div className="rounded-2xl border border-dashed border-[#d7dfeb] bg-white px-5 py-16 text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#edf2fa] text-[#536f98]">
+        {hasFiles ? (
+          <Search className="h-6 w-6" />
+        ) : (
+          <ArrowDownToLine className="h-6 w-6" />
+        )}
       </div>
 
-      <p className="mt-3 text-[11px] font-medium text-[#444]">
-        {hasFiles ? "No files in this category" : "No files yet"}
-      </p>
+      <h3 className="mt-5 text-lg font-semibold tracking-[-0.025em] text-[#29364c]">
+        {hasFiles ? "No files in this category" : "Your workspace is ready"}
+      </h3>
 
-      <p className="mt-1 max-w-[260px] text-[9px] leading-4 text-[#999]">
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#8792a5]">
         {hasFiles
-          ? "Try another filter to see the other files in this project."
-          : "Files uploaded by you or your project team will appear here."}
+          ? "Try another category above to find the files you need."
+          : "Upload your first file to start organizing project assets and sharing resources with your team."}
       </p>
 
       {!hasFiles && (
         <button
           type="button"
           onClick={onUpload}
-          className="mt-4 flex h-8 items-center gap-1.5 rounded-[6px] bg-[#111] px-3 text-[10px] font-medium text-white hover:bg-[#2a2a2a]"
+          className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#111] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#223c65]"
         >
-          <Plus className="h-3 w-3" />
+          <Plus className="h-4 w-4" />
           Upload your first file
         </button>
       )}
