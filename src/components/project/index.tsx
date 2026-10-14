@@ -252,257 +252,247 @@ export const AllProjects = () => {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#fff] text-[#201d1a]">
-      <section className="relative isolate overflow-hidden border-b border-[#292929] bg-[#080808] text-white">
+      <section className="relative isolate overflow-hidden border-b border-neutral-200 bg-white text-neutral-950">
         <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+        >
+          <div className="absolute inset-0 opacity-[0.45] [background-image:linear-gradient(rgba(0,0,0,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.035)_1px,transparent_1px)] [background-size:64px_64px]" />
+
+          <div className="absolute -right-52 -top-48 h-[650px] w-[650px] rounded-full border border-black/[0.07] sm:-right-36 sm:-top-64" />
+          <div className="absolute -right-24 -top-24 h-[450px] w-[450px] rounded-full border border-black/[0.07]" />
+          <div className="absolute right-[-2rem] top-16 h-[260px] w-[260px] rounded-full border border-black/[0.06]" />
+
+          <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-black/15 to-transparent" />
+
+          <div className="absolute right-[13%] top-[23%] hidden h-2 w-2 rounded-full bg-neutral-900/70 sm:block" />
+          <div className="absolute right-[calc(13%+3px)] top-[calc(23%+3px)] hidden h-5 w-5 rounded-full border border-black/20 sm:block" />
+        </div>
+
+        <div className="mx-auto max-w-[1440px] px-5 pb-10 pt-9 sm:px-8 sm:pb-14 sm:pt-12 lg:px-14 lg:pb-16 lg:pt-14">
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:64px_64px]" />
-            <div className="absolute -right-52 -top-48 h-[650px] w-[650px] rounded-full border border-white/[0.09] sm:-right-36 sm:-top-64" />
-            <div className="absolute -right-24 -top-24 h-[450px] w-[450px] rounded-full border border-white/[0.08]" />
-            <div className="absolute right-[-2rem] top-16 h-[260px] w-[260px] rounded-full border border-white/[0.07]" />
-            <div className="absolute right-[8%] top-[10%] h-64 w-64 rounded-full bg-white/[0.035] blur-[100px]" />
-            <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            <div className="absolute right-[13%] top-[23%] hidden h-2 w-2 rounded-full bg-white/70 sm:block" />
-            <div className="absolute right-[calc(13%+3px)] top-[calc(23%+3px)] hidden h-5 w-5 rounded-full border border-white/20 sm:block" />
-          </div>
-
-          <div className="mx-auto max-w-[1440px] px-5 pb-10 pt-9 sm:px-8 sm:pb-14 sm:pt-12 lg:px-14 lg:pb-16 lg:pt-14">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-white text-black">
-                    <Layers3 size={17} strokeWidth={1.8} />
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white">
-                      Project archive
-                    </p>
-                    <p className="mt-1 text-[9px] tracking-wide text-white/40">
-                      Independent digital work
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.035] px-3 py-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-white/80" />
-                  <span className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/65">
-                    Ideas into reality
-                  </span>
+            {/* Identity row */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-950">
+                    Artisanery Tech
+                  </p>
+                  <p className="mt-1 text-[9px] tracking-wide text-neutral-500">
+                    Independent digital work
+                  </p>
                 </div>
               </div>
 
-              <div className="mt-12 grid gap-10 lg:mt-16 lg:grid-cols-[minmax(0,1.3fr)_minmax(270px,0.7fr)] lg:items-end lg:gap-14">
-                <div className="min-w-0">
-                  <div className="mb-6 flex items-center gap-3">
-                    <span className="text-[9px] font-medium uppercase tracking-[0.24em] text-white/50">
-                      Selected work &amp; ongoing ideas
-                    </span>
-                  </div>
+              <div className="flex items-center gap-2 rounded-full border border-neutral-200 bg-white/80 px-3 py-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-neutral-900" />
+                <span className="text-[9px] font-medium uppercase tracking-[0.12em] text-neutral-600">
+                  Ideas into reality
+                </span>
+              </div>
+            </div>
 
-                  <h1 className="max-w-[900px] text-[clamp(3.25rem,8.4vw,7.8rem)] font-semibold leading-[0.86] tracking-[-0.085em]">
-                    Digital
-                    <br />
-                    <span className="text-white">work.</span>
-                    <br />
-                    <span className="font-normal text-[#777777]">
-                      Distinct purpose.
-                    </span>
-                  </h1>
-
-                  <div className="mt-8 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-                    <p className="max-w-[440px] text-[12px] leading-6 text-white/55 sm:text-[13px] sm:leading-7">
-                      Websites, applications, and digital experiences — shaped by
-                      thoughtful design, purposeful engineering, and the details that
-                      make the difference.
-                    </p>
-
-                    <div className="flex shrink-0 flex-wrap items-center gap-2.5">
-                      <button
-                        type="button"
-                        onClick={scrollToProjects}
-                        className="group inline-flex min-h-11 items-center gap-3 rounded-full bg-white px-5 text-[11px] font-semibold text-black transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#e5e5e5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-                      >
-                        Explore projects
-                        <ArrowDownRight
-                          size={15}
-                          className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:translate-y-0.5"
-                        />
-                      </button>
-
-                      <a
-                        href="https://oduyemi.dev/projects"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 px-4 text-[11px] font-medium text-white/80 transition-all duration-300 hover:border-white/50 hover:bg-white/[0.06] hover:text-white"
-                      >
-                        Portfolio
-                        <ArrowUpRight
-                          size={14}
-                          className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                        />
-                      </a>
-                    </div>
-                  </div>
+            <div className="mt-12 grid gap-10 lg:mt-16 lg:grid-cols-[minmax(0,1.3fr)_minmax(270px,0.7fr)] lg:items-end lg:gap-14">
+              {/* Main headline */}
+              <div className="min-w-0">
+                <div className="mb-6 flex items-center gap-3">
+                  <span className="text-[9px] font-medium uppercase tracking-[0.24em] text-neutral-500">
+                    Selected work &amp; ongoing ideas
+                  </span>
                 </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.65,
-                    delay: 0.12,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                  className="relative"
-                >
-                  <div className="relative overflow-hidden rounded-2xl border border-white/[0.14] bg-[#111111]/90 p-5 sm:p-6">
-                    <div
-                      aria-hidden="true"
-                      className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full border border-white/[0.08]"
-                    />
-                    <div
-                      aria-hidden="true"
-                      className="pointer-events-none absolute -right-5 -top-5 h-24 w-24 rounded-full border border-white/[0.08]"
-                    />
+                <h1 className="max-w-[900px] text-[clamp(3.25rem,8.4vw,7.8rem)] font-semibold leading-[0.86] tracking-[-0.085em]">
+                  Digital
+                  <br />
+                  <span className="text-neutral-950">work.</span>
+                  <br />
+                  <span className="font-normal text-neutral-400">
+                    Distinct purpose.
+                  </span>
+                </h1>
 
-                    <div className="relative flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-[9px] font-medium uppercase tracking-[0.2em] text-white/40">
-                          At a glance
-                        </p>
+                <div className="mt-8 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+                  <p className="max-w-[440px] text-[12px] leading-6 text-neutral-600 sm:text-[13px] sm:leading-7">
+                    Websites, applications, and digital experiences — shaped by
+                    thoughtful design, purposeful engineering, and the details that
+                    make the difference.
+                  </p>
 
-                        <h2 className="mt-3 text-xl font-medium tracking-[-0.045em] text-white sm:text-2xl">
-                          The bigger picture.
-                        </h2>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={scrollToProjects}
+                      className="group inline-flex min-h-11 items-center gap-3 rounded-full bg-neutral-950 px-5 text-[11px] font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2"
+                    >
+                      Explore projects
+                      <ArrowDownRight
+                        size={15}
+                        className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:translate-y-0.5"
+                      />
+                    </button>
 
-                        <p className="mt-2 max-w-[260px] text-[11px] leading-5 text-white/45">
-                          Ideas in motion. Finished work. One evolving collection.
-                        </p>
-                      </div>
+                    <a
+                      href="https://oduyemi.dev/projects"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group inline-flex min-h-11 items-center gap-2 rounded-full border border-neutral-300 bg-white/70 px-4 text-[11px] font-medium text-neutral-800 transition-all duration-300 hover:-translate-y-0.5 hover:border-neutral-950 hover:bg-neutral-50"
+                    >
+                      Portfolio
+                      <ArrowUpRight
+                        size={14}
+                        className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                      />
+                    </a>
+                  </div>
+                </div>
+              </div>
 
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] text-white">
-                        <Layers3 size={18} strokeWidth={1.5} />
-                      </div>
+              {/* Project overview panel */}
+              <motion.div
+                initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.65,
+                  delay: 0.12,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                className="relative"
+              >
+                <div className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-white/90 p-5 shadow-[0_18px_55px_rgba(0,0,0,0.045)] sm:p-6">
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full border border-neutral-200/80"
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -right-5 -top-5 h-24 w-24 rounded-full border border-neutral-200/80"
+                  />
+
+                  <div className="relative flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[9px] font-medium uppercase tracking-[0.2em] text-neutral-500">
+                        At a glance
+                      </p>
+
+                      <h2 className="mt-3 text-xl font-medium tracking-[-0.045em] text-neutral-950 sm:text-2xl">
+                        The bigger picture.
+                      </h2>
+
+                      <p className="mt-2 max-w-[260px] text-[11px] leading-5 text-neutral-500">
+                        Ideas in motion. Finished work. One evolving collection.
+                      </p>
                     </div>
 
-                    <div className="relative mt-7 grid grid-cols-3 border-y border-white/10 py-5">
-                      {[
-                        { value: projects.length, label: "Total projects" },
-                        { value: activeProjects.length, label: "In progress" },
-                        { value: completedProjects.length, label: "Completed" },
-                      ].map((stat, index) => (
-                        <div
-                          key={stat.label}
-                          className={[
-                            "min-w-0",
-                            index > 0 ? "border-l border-white/10 pl-3 sm:pl-4" : "",
-                            index < 2 ? "pr-2 sm:pr-4" : "",
-                          ].join(" ")}
-                        >
-                          <p className="text-2xl font-semibold tabular-nums tracking-[-0.065em] text-white sm:text-3xl">
-                            {stat.value.toLocaleString()}
-                          </p>
-                          <p className="mt-2 text-[8px] font-medium uppercase leading-4 tracking-[0.1em] text-white/40 sm:text-[9px]">
-                            {stat.label}
-                          </p>
-                        </div>
-                      ))}
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-950 text-white">
+                      <Layers3 size={18} strokeWidth={1.5} />
                     </div>
+                  </div>
 
-                    <div className="relative mt-5">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-[10px] text-white/55">
-                          Projects completed
-                        </span>
-
-                        <span className="text-[10px] font-medium tabular-nums text-white">
-                          {projects.length
-                            ? Math.round(
-                                (completedProjects.length / projects.length) * 100
-                              )
-                            : 0}
-                          %
-                        </span>
-                      </div>
-
+                  {/* Live project statistics */}
+                  <div className="relative mt-7 grid grid-cols-3 border-y border-neutral-200 py-5">
+                    {[
+                      { value: projects.length, label: "Total projects" },
+                      { value: activeProjects.length, label: "In progress" },
+                      { value: completedProjects.length, label: "Completed" },
+                    ].map((stat, index) => (
                       <div
-                        className="mt-3 h-1 overflow-hidden rounded-full bg-white/10"
-                        role="progressbar"
-                        aria-label="Percentage of projects completed"
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-valuenow={
-                          projects.length
-                            ? Math.round(
-                                (completedProjects.length / projects.length) * 100
-                              )
-                            : 0
-                        }
+                        key={stat.label}
+                        className={[
+                          "min-w-0",
+                          index > 0 ? "border-l border-neutral-200 pl-3 sm:pl-4" : "",
+                          index < 2 ? "pr-2 sm:pr-4" : "",
+                        ].join(" ")}
                       >
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{
-                            width: `${
-                              projects.length
-                                ? (completedProjects.length / projects.length) * 100
-                                : 0
-                            }%`,
-                          }}
-                          transition={{ duration: 0.9, delay: 0.25 }}
-                          className="h-full rounded-full bg-white"
-                        />
+                        <p className="text-2xl font-semibold tabular-nums tracking-[-0.065em] text-neutral-950 sm:text-3xl">
+                          {stat.value.toLocaleString()}
+                        </p>
+                        <p className="mt-2 text-[8px] font-medium uppercase leading-4 tracking-[0.1em] text-neutral-500 sm:text-[9px]">
+                          {stat.label}
+                        </p>
                       </div>
-                    </div>
+                    ))}
+                  </div>
 
-                    <div className="relative mt-5 flex items-center justify-between gap-3 border-t border-white/[0.08] pt-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-white/60">
-                          Built with intention.
-                        </span>
-                      </div>
+                  {/* Completion indicator */}
+                  <div className="relative mt-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[10px] text-neutral-500">
+                        Projects completed
+                      </span>
 
-                      <span className="text-[9px] uppercase tracking-[0.14em] text-white/35">
-                        01 / Collection
+                      <span className="text-[10px] font-medium tabular-nums text-neutral-950">
+                        {projects.length
+                          ? Math.round(
+                              (completedProjects.length / projects.length) * 100
+                            )
+                          : 0}
+                        %
                       </span>
                     </div>
+
+                    <div
+                      className="mt-3 h-1 overflow-hidden rounded-full bg-neutral-100"
+                      role="progressbar"
+                      aria-label="Percentage of projects completed"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={
+                        projects.length
+                          ? Math.round(
+                              (completedProjects.length / projects.length) * 100
+                            )
+                          : 0
+                      }
+                    >
+                      <motion.div
+                        initial={reduceMotion ? false : { width: 0 }}
+                        animate={{
+                          width: `${
+                            projects.length
+                              ? (completedProjects.length / projects.length) * 100
+                              : 0
+                          }%`,
+                        }}
+                        transition={{ duration: 0.9, delay: 0.25 }}
+                        className="h-full rounded-full bg-neutral-950"
+                      />
+                    </div>
                   </div>
 
-                  <span
-                    aria-hidden="true"
-                    className="absolute -right-1.5 -top-1.5 h-3 w-3 rounded-full border border-white/50 bg-[#080808]"
-                  />
-                  <span
-                    aria-hidden="true"
-                    className="absolute -bottom-1.5 -left-1.5 h-3 w-3 rounded-full border border-white/40 bg-[#080808]"
-                  />
-                </motion.div>
-              </div>
+                  <div className="relative mt-5 flex items-center justify-between gap-3 border-t border-neutral-100 pt-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-neutral-500">
+                        Built with intention.
+                      </span>
+                    </div>
 
-              <div className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-white/15 pt-5 sm:mt-16">
-                <div className="flex items-center gap-3">
-                  <span className="h-1.5 w-1.5 rounded-full bg-white" />
-                  <span className="text-[9px] font-medium uppercase tracking-[0.15em] text-white/55">
-                    A living collection of digital work
-                  </span>
+                    <span className="text-[9px] uppercase tracking-[0.14em] text-neutral-400">
+                      01 / Collection
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-[9px] uppercase tracking-[0.14em] text-white/35">
-                  <span>Design</span>
-                  <span className="h-1 w-1 rounded-full bg-white/30" />
-                  <span>Engineering</span>
-                  <span className="h-1 w-1 rounded-full bg-white/30" />
-                  <span>Delivery</span>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
+                {/* Corner markers */}
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-1.5 -top-1.5 h-3 w-3 rounded-full border border-neutral-400 bg-white"
+                />
+                <span
+                  aria-hidden="true"
+                  className="absolute -bottom-1.5 -left-1.5 h-3 w-3 rounded-full border border-neutral-400 bg-white"
+                />
+              </motion.div>
+            </div>
+
+            {/* Footer strip */}
+            
+          </motion.div>
+        </div>
+      </section>
 
       <div
         id="project-library"
@@ -748,7 +738,7 @@ export const AllProjects = () => {
 
                 <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                   <div className="max-w-xl">
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#986745]">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#fff]">
                       More where that came from
                     </p>
 
@@ -763,12 +753,12 @@ export const AllProjects = () => {
                   </div>
 
                   <a
-                    href="https://oduyemi.dev/projects"
+                    href="https://oduyemi.dev"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group inline-flex min-h-12 shrink-0 items-center justify-center gap-3 self-start rounded-full bg-[#292923] px-5 text-xs font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-[#403c34] sm:self-center"
                   >
-                    Explore portfolio
+                    Visit website
                     <ArrowUpRight
                       size={15}
                       className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"

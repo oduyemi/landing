@@ -380,10 +380,6 @@ const statusCounts = useMemo<Record<ClientStatus, number>>(() => {
             </span>
           </div>
 
-          <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.1em] text-[#a09890]">
-            <Sparkles size={12} />
-            Client workspace
-          </div>
         </div>
       </motion.section>
 
