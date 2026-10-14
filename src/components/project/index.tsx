@@ -341,7 +341,7 @@ export const AllProjects = () => {
                       rel="noopener noreferrer"
                       className="group inline-flex min-h-11 items-center gap-2 rounded-full border border-neutral-300 bg-white/70 px-4 text-[11px] font-medium text-neutral-800 transition-all duration-300 hover:-translate-y-0.5 hover:border-neutral-950 hover:bg-neutral-50"
                     >
-                      Portfolio
+                      Visit website
                       <ArrowUpRight
                         size={14}
                         className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
