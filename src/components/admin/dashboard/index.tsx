@@ -397,10 +397,6 @@ export default function AdminDashboard() {
                   : "Workspace overview"}
             </span>
           </div>
-
-          <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#aaa39c]">
-            Admin workspace
-          </span>
         </div>
       </motion.section>
 
