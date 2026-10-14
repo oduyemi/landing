@@ -242,7 +242,7 @@ export default function AdminSidebar() {
           ].join(" ")}
         >
           <Link
-            href="/admin"
+            href="/"
             aria-label="Admin dashboard"
             onClick={() => setMobileOpen(false)}
             className="flex min-w-0 items-center"
