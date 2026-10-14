@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-
-import Project, {
-  ProjectStatus,
-} from "@/models/project.model";
-
+import Project, { ProjectStatus } from "@/models/project.model";
 import User from "@/models/user.model";
-
 import { dbConnect } from "@/utils/db";
-import {
-  getCurrentUser,
-  requireRole,
-} from "@/utils/auth";
-
+import { getCurrentUser, requireRole } from "@/utils/auth";
 import { createProjectFolders } from "@/utils/cloudinary";
+
+
 
 const PROJECT_STATUSES: ProjectStatus[] = [
   "Planning",
@@ -96,9 +89,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-
     const currentUser = await getCurrentUser();
-
     if (!currentUser) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -107,13 +98,11 @@ export async function POST(req: NextRequest) {
     }
 
     const roleError = requireRole(currentUser, ["admin"]);
-
     if (roleError) {
       return roleError;
     }
 
     const body = await req.json();
-
     const {
       title,
       type,
@@ -127,7 +116,7 @@ export async function POST(req: NextRequest) {
     }: {
       title?: string;
       type?: string;
-      image?: string | null;
+      image?: string;
       progress?: number;
       status?: ProjectStatus;
       startDate?: string | Date;
@@ -251,12 +240,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    /*
-     * ---------------------------------------------------------
-     * Validate status
-     * ---------------------------------------------------------
-     */
-
     const projectStatus = status ?? "Planning";
 
     if (!PROJECT_STATUSES.includes(projectStatus)) {
@@ -269,12 +252,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    /*
-     * ---------------------------------------------------------
-     * Validate dates
-     * ---------------------------------------------------------
-     */
 
     const parsedStartDate = new Date(startDate);
     const parsedDeadline = new Date(deadline);
@@ -307,12 +284,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    /*
-     * ---------------------------------------------------------
-     * Generate Cloudinary folder name
-     * ---------------------------------------------------------
-     */
-
     const baseFolder = createCloudinaryFolderName(title);
 
     /**
@@ -341,12 +312,6 @@ export async function POST(req: NextRequest) {
       cloudinaryFolder = `${baseFolder}-${suffix}`;
     }
 
-    /*
-     * ---------------------------------------------------------
-     * Create Cloudinary folder structure
-     * ---------------------------------------------------------
-     */
-
     try {
       await createProjectFolders(cloudinaryFolder);
     } catch (cloudinaryError) {
@@ -364,17 +329,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    /*
-     * ---------------------------------------------------------
-     * Create MongoDB project
-     * ---------------------------------------------------------
-     */
 
     try {
       const project = await Project.create({
         title: title.trim(),
         type: type.trim(),
-        image: image?.trim() || undefined,
+        image: image?.trim(),
         progress: projectProgress,
         status: projectStatus,
         startDate: parsedStartDate,
