@@ -44,43 +44,52 @@ export async function GET() {
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
+      console.warn("[GET /api/projects] No authenticated user");
+
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { success: false, error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    let projects;
+    console.log("[GET /api/projects] Authenticated user:", {
+      id: String(currentUser._id),
+      role: currentUser.role,
+    });
 
-    if (currentUser.role === "admin") {
-      projects = await Project.find()
-        .populate(
-          "client",
-          "fname lname email image role"
-        )
-        .sort({ createdAt: -1 })
-        .lean();
-    } else {
-      projects = await Project.find({
-        client: currentUser._id,
-      })
-        .populate(
-          "client",
-          "fname lname email image role"
-        )
-        .sort({ createdAt: -1 })
-        .lean();
-    }
+    const filter =
+      currentUser.role === "admin"
+        ? {}
+        : { client: currentUser._id };
+
+    const projects = await Project.find(filter)
+      .populate("client", "fname lname email image role")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    console.log("[GET /api/projects] Results:", {
+      role: currentUser.role,
+      count: projects.length,
+      projects: projects.map((project) => ({
+        id: String(project._id),
+        title: project.title,
+        client: project.client,
+      })),
+    });
 
     return NextResponse.json({
+      success: true,
       projects,
       count: projects.length,
     });
   } catch (error) {
-    console.error("GET PROJECTS ERROR:", error);
+    console.error("[GET /api/projects] Error:", error);
 
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        success: false,
+        error: "Internal server error",
+      },
       { status: 500 }
     );
   }

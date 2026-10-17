@@ -7,9 +7,7 @@ import { getCurrentUser } from "@/utils/auth";
 export async function PATCH(req: NextRequest) {
   try {
     await dbConnect();
-
     const currentUser = await getCurrentUser();
-
     if (!currentUser) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -18,11 +16,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-
-    const {
-      currentPassword,
-      newPassword,
-    }: {
+    const {currentPassword, newPassword}: {
       currentPassword?: string;
       newPassword?: string;
     } = body;

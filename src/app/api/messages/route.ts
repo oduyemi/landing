@@ -1,28 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { randomUUID } from "crypto";
-
 import Message from "@/models/message.model";
 import User from "@/models/user.model";
-
 import { dbConnect } from "@/utils/db";
 import { getCurrentUser } from "@/utils/auth";
-import {
-  getMessageContext,
-  validateMessageRecipient,
-  validateMessageTask,
-} from "@/utils/messages";
+import { getMessageContext, validateMessageRecipient, validateMessageTask } from "@/utils/messages";
 import { createMessageNotification } from "@/utils/notifications";
-
 import { sendEmailWithRetry } from "@/helper/emailLogic";
 import { sendNewMessageMail } from "@/helper/sendNewMessageMail";
+
 
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
-
     const currentUser = await getCurrentUser();
-
     if (!currentUser) {
       return NextResponse.json(
         {
@@ -35,14 +27,11 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-
     const projectId = searchParams.get("projectId");
     const threadId = searchParams.get("threadId");
     const unread = searchParams.get("unread");
     const limitParam = searchParams.get("limit");
-
     const parsedLimit = Number(limitParam);
-
     const limit = Math.min(
       Math.max(
         Number.isFinite(parsedLimit)
@@ -145,9 +134,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-
     const currentUser = await getCurrentUser();
-
     if (!currentUser) {
       return NextResponse.json(
         {
@@ -160,7 +147,6 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-
     const {
       projectId,
       recipientId,
@@ -230,7 +216,6 @@ export async function POST(req: NextRequest) {
     }
 
     const messageContent = content?.trim();
-
     if (!messageContent) {
       return NextResponse.json(
         {
@@ -254,9 +239,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const projectContext =
-      await getMessageContext(projectId);
-
+    const projectContext = await getMessageContext(projectId);
     if (projectContext.error) {
       return NextResponse.json(
         {
@@ -301,8 +284,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const taskResult =
-      await validateMessageTask(
+    const taskResult = await validateMessageTask(
         taskId,
         projectId
       );
@@ -318,9 +300,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let resolvedThreadId =
-      threadId?.trim();
-
+    let resolvedThreadId = threadId?.trim();
     if (replyTo) {
       if (
         !mongoose.Types.ObjectId.isValid(
@@ -448,12 +428,6 @@ export async function POST(req: NextRequest) {
         user.lname ?? ""
       }`.trim() || "A user";
 
-    /*
-     * Create the in-app notification.
-     *
-     * This is awaited because it is part of the
-     * application's internal notification state.
-     */
     try {
       await createMessageNotification({
         recipient: new mongoose.Types.ObjectId(recipientId),

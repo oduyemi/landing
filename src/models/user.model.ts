@@ -12,6 +12,7 @@ export interface IUser extends Document {
   password: string;
   role: UserRole;
   image?: string | null;
+  imagePublicId?: string | null;
   firstLogin: boolean;
   lastLogin?: Date | null;
   createdAt: Date;
@@ -60,6 +61,11 @@ const userSchema = new Schema<IUser>(
     },
 
     image: {
+      type: String,
+      default: null,
+    },
+
+    imagePublicId: {
       type: String,
       default: null,
     },

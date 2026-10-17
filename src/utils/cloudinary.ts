@@ -137,4 +137,35 @@ export const deleteCloudinaryResource = async (
 };
 
 
+export async function uploadProjectImage(
+  buffer: Buffer,
+  contentType: string
+) {
+  return new Promise<{
+    secure_url: string;
+    public_id: string;
+  }>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "portal/projects",
+        resource_type: "image",
+        allowed_formats: ["jpg", "jpeg", "png", "webp"],
+      },
+      (error, result) => {
+        if (error || !result) {
+          reject(error ?? new Error("Image upload failed."));
+          return;
+        }
+
+        resolve({
+          secure_url: result.secure_url,
+          public_id: result.public_id,
+        });
+      }
+    );
+
+    stream.end(buffer);
+  });
+}
+
 export default cloudinary;
