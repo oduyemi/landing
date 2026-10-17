@@ -119,12 +119,10 @@ export default function AdminSidebar() {
     };
   }, [fetchUnreadCount]);
 
-  // Close the mobile drawer after route navigation.
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Prevent the page behind the drawer from scrolling.
   useEffect(() => {
     if (!mobileOpen) return;
 
@@ -143,7 +141,6 @@ export default function AdminSidebar() {
     };
   }, [mobileOpen]);
 
-  // Close the drawer when switching to desktop layout.
   useEffect(() => {
     const onResize = () => {
       if (window.innerWidth >= 1024) {

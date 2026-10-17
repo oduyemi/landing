@@ -133,10 +133,6 @@ export const Activities = () => {
                 <h1 className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl">
                   Activity
                 </h1>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  Workspace feed
-                </span>
               </div>
               <p className="text-sm leading-6 text-neutral-500 sm:text-[15px]">
                 A clear view of the latest changes, updates, and activity

@@ -131,7 +131,7 @@ export default function AdminHeader({
 
           {/* Profile */}
           <Link
-            href="/admin/profile"
+            href="/admin/settings"
             aria-label={`Open profile${fullName ? ` for ${fullName}` : ""}`}
             className="group flex items-center gap-2 rounded-xl p-1 transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400"
           >
