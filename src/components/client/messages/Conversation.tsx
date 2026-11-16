@@ -2,7 +2,8 @@
 import { motion } from "framer-motion";
 import { ConversationHeader } from "./ConversationHeader";
 import { MessageComposer } from "./Composer";
-import type {ConversationItem, ChatMessage} from "./index";
+import type {ConversationItem, ChatMessage, ChatAttachment} from "./index";
+import { FileText, ExternalLink } from "lucide-react";
 
 interface ConversationProps {
   conversation: ConversationItem;
@@ -14,6 +15,75 @@ interface ConversationProps {
     attachments?: File[],
     replyTo?: string
   ) => Promise<boolean>;
+}
+
+
+
+function MessageAttachments({
+  attachments,
+}: {
+  attachments: ChatAttachment[];
+}) {
+  if (!attachments?.length) return null;
+
+  return (
+    <div className="mt-2 space-y-2">
+      {attachments.map((attachment) => {
+        const isImage =
+          attachment.resourceType === "image" ||
+          attachment.type.startsWith("image/");
+
+        return (
+          <div key={attachment.publicId || attachment.url}>
+            {isImage ? (
+              <a
+                href={attachment.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block overflow-hidden rounded-lg"
+              >
+                <img
+                  src={attachment.url}
+                  alt={attachment.name || "Message attachment"}
+                  className="max-h-[320px] max-w-full rounded-lg object-contain"
+                  loading="lazy"
+                  onError={(event) => {
+                    console.error(
+                      "Unable to load message image:",
+                      attachment.url
+                    );
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
+              </a>
+            ) : (
+              <a
+                href={attachment.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white/80 p-3 transition hover:bg-neutral-100"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
+                  <FileText className="h-4 w-4" />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-medium text-neutral-800">
+                    {attachment.name}
+                  </p>
+                  <p className="mt-1 text-[10px] text-neutral-400">
+                    {(attachment.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+
+                <ExternalLink className="h-4 w-4 shrink-0 text-neutral-400" />
+              </a>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export const Conversation = ({
@@ -166,9 +236,15 @@ export const Conversation = ({
                               </div>
                             )}
 
-                            <p className="text-[10px] leading-[1.65]">
-                              {message.content}
-                            </p>
+                            {message.content && (
+                              <p className="whitespace-pre-wrap break-words text-[10px] leading-[1.65]">
+                                {message.content}
+                              </p>
+                            )}
+
+                            {message.attachments && message.attachments.length > 0 && (
+                              <MessageAttachments attachments={message.attachments} />
+                            )}
                           </div>
                         </div>
 

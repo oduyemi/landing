@@ -12,6 +12,29 @@ exports.Conversation = void 0;
 var framer_motion_1 = require("framer-motion");
 var ConversationHeader_1 = require("./ConversationHeader");
 var Composer_1 = require("./Composer");
+var lucide_react_1 = require("lucide-react");
+function MessageAttachments(_a) {
+    var attachments = _a.attachments;
+    if (!(attachments === null || attachments === void 0 ? void 0 : attachments.length))
+        return null;
+    return (React.createElement("div", { className: "mt-2 space-y-2" }, attachments.map(function (attachment) {
+        var isImage = attachment.resourceType === "image" ||
+            attachment.type.startsWith("image/");
+        return (React.createElement("div", { key: attachment.publicId || attachment.url }, isImage ? (React.createElement("a", { href: attachment.url, target: "_blank", rel: "noopener noreferrer", className: "block overflow-hidden rounded-lg" },
+            React.createElement("img", { src: attachment.url, alt: attachment.name || "Message attachment", className: "max-h-[320px] max-w-full rounded-lg object-contain", loading: "lazy", onError: function (event) {
+                    console.error("Unable to load message image:", attachment.url);
+                    event.currentTarget.style.display = "none";
+                } }))) : (React.createElement("a", { href: attachment.url, target: "_blank", rel: "noopener noreferrer", className: "flex items-center gap-3 rounded-lg border border-neutral-200 bg-white/80 p-3 transition hover:bg-neutral-100" },
+            React.createElement("div", { className: "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600" },
+                React.createElement(lucide_react_1.FileText, { className: "h-4 w-4" })),
+            React.createElement("div", { className: "min-w-0 flex-1" },
+                React.createElement("p", { className: "truncate text-xs font-medium text-neutral-800" }, attachment.name),
+                React.createElement("p", { className: "mt-1 text-[10px] text-neutral-400" },
+                    (attachment.size / 1024 / 1024).toFixed(2),
+                    " MB")),
+            React.createElement(lucide_react_1.ExternalLink, { className: "h-4 w-4 shrink-0 text-neutral-400" })))));
+    })));
+}
 exports.Conversation = function (_a) {
     var _b;
     var conversation = _a.conversation, messages = _a.messages, _c = _a.loading, loading = _c === void 0 ? false : _c, currentUserId = _a.currentUserId, onSendMessage = _a.onSendMessage;
@@ -85,7 +108,8 @@ exports.Conversation = function (_a) {
                                         .senderName),
                                     React.createElement("p", { className: "mt-0.5 line-clamp-2 text-[6px] opacity-60" }, message.replyTo
                                         .content))),
-                                React.createElement("p", { className: "text-[10px] leading-[1.65]" }, message.content))),
+                                message.content && (React.createElement("p", { className: "whitespace-pre-wrap break-words text-[10px] leading-[1.65]" }, message.content)),
+                                message.attachments && message.attachments.length > 0 && (React.createElement(MessageAttachments, { attachments: message.attachments })))),
                         isCurrentUser && (React.createElement("div", { className: "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-[6px] font-semibold text-neutral-700" }, message.senderInitials))));
                 })))))),
         React.createElement(Composer_1.MessageComposer, { onSendMessage: onSendMessage })));
