@@ -1,15 +1,22 @@
-
 "use client";
 import { useCallback, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { LoaderCircle, Send, Paperclip, Smile, AlertCircle } from "lucide-react";
+import {LoaderCircle, Send, Paperclip, Smile, AlertCircle, X, FileText, Image as ImageIcon } from "lucide-react";
+import { MAX_MESSAGE_ATTACHMENTS, MAX_MESSAGE_ATTACHMENT_SIZE, ALLOWED_MESSAGE_MIME_TYPES, validateMessageAttachments } from "@/utils/message-attachments";
 
 interface MessageComposerProps {
-  onSend: (content: string) => Promise<void>;
+  onSend: (content: string, attachments: File[]) => Promise<void>;
   disabled?: boolean;
   sending?: boolean;
   placeholder?: string;
   maxLength?: number;
 }
+
+const EMOJIS = [
+  "😀", "😃", "😄", "😁", "😊", "🙂", "😉", "😍",
+  "🥰", "😘", "😎", "🤔", "😅", "😂", "🤣", "😭",
+  "👍", "👎", "👌", "👏", "🙌", "🙏", "🤝", "❤️", "💯",
+  "🎉", "🔥", "✨", "💪", "🚀", "✅", "📌", "👋",
+];
 
 export const MessageComposer = ({
   onSend,
@@ -19,8 +26,12 @@ export const MessageComposer = ({
   maxLength = 5000,
 }: MessageComposerProps) => {
   const [content, setContent] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [error, setError] = useState("");
+  const [emojiOpen, setEmojiOpen] = useState(false);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isDisabled = disabled || sending;
   const remaining = maxLength - content.length;
@@ -38,6 +49,63 @@ export const MessageComposer = ({
     if (error) setError("");
   };
 
+  const handleFiles = (selectedFiles: FileList | null) => {
+    if (!selectedFiles) return;
+
+    const newFiles = Array.from(selectedFiles);
+    const combined = [...attachments, ...newFiles];
+
+    const validationError = validateMessageAttachments(combined);
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setAttachments(combined);
+    setError("");
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((current) =>
+      current.filter((_, i) => i !== index)
+    );
+  };
+
+  const insertEmoji = (emoji: string) => {
+    const textarea = textareaRef.current;
+
+    if (!textarea) {
+      setContent((current) => current + emoji);
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    const nextContent =
+      content.slice(0, start) +
+      emoji +
+      content.slice(end);
+
+    if (nextContent.length > maxLength) {
+      setError(`Messages cannot exceed ${maxLength} characters.`);
+      return;
+    }
+
+    setContent(nextContent);
+    setEmojiOpen(false);
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+
+      const position = start + emoji.length;
+
+      textarea.setSelectionRange(position, position);
+      resizeTextarea();
+    });
+  };
+
   const handleSubmit = async (event?: FormEvent) => {
     event?.preventDefault();
 
@@ -45,8 +113,8 @@ export const MessageComposer = ({
 
     if (isDisabled) return;
 
-    if (!message) {
-      setError("Write a message before sending.");
+    if (!message && attachments.length === 0) {
+      setError("Write a message or attach a file before sending.");
       return;
     }
 
@@ -55,11 +123,20 @@ export const MessageComposer = ({
       return;
     }
 
+    const validationError = validateMessageAttachments(attachments);
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setError("");
 
     try {
-      await onSend(message);
+      await onSend(message, attachments);
+
       setContent("");
+      setAttachments([]);
 
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
@@ -74,7 +151,9 @@ export const MessageComposer = ({
     }
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (
+    event: KeyboardEvent<HTMLTextAreaElement>
+  ) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       void handleSubmit();
@@ -83,10 +162,7 @@ export const MessageComposer = ({
 
   return (
     <div className="shrink-0 border-t border-neutral-200 bg-white px-3 py-3 sm:px-5 sm:py-4">
-      <form
-        onSubmit={handleSubmit}
-        className="mx-auto max-w-3xl"
-      >
+      <form onSubmit={handleSubmit} className="mx-auto max-w-3xl">
         <div
           className={`rounded-xl border bg-white transition ${
             error
@@ -94,6 +170,46 @@ export const MessageComposer = ({
               : "border-neutral-200 focus-within:border-neutral-400"
           } ${isDisabled ? "opacity-70" : ""}`}
         >
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 px-3 pt-3">
+              {attachments.map((file, index) => {
+                const isImage = file.type.startsWith("image/");
+
+                return (
+                  <div
+                    key={`${file.name}-${file.size}-${index}`}
+                    className="flex max-w-full items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2.5 py-2"
+                  >
+                    {isImage ? (
+                      <ImageIcon size={15} className="shrink-0 text-neutral-500" />
+                    ) : (
+                      <FileText size={15} className="shrink-0 text-neutral-500" />
+                    )}
+
+                    <div className="min-w-0">
+                      <p className="max-w-40 truncate text-[11px] font-medium text-neutral-700">
+                        {file.name}
+                      </p>
+                      <p className="text-[10px] text-neutral-400">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => removeAttachment(index)}
+                      aria-label={`Remove ${file.name}`}
+                      className="ml-1 rounded p-1 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-700 disabled:opacity-50"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           <textarea
             ref={textareaRef}
             value={content}
@@ -102,42 +218,73 @@ export const MessageComposer = ({
               resizeTextarea();
             }}
             onKeyDown={handleKeyDown}
-            placeholder={disabled ? "Select a conversation to reply..." : placeholder}
+            placeholder={
+              disabled
+                ? "Select a conversation to reply..."
+                : placeholder
+            }
             disabled={isDisabled}
             rows={1}
             maxLength={maxLength}
             aria-label="Write a message"
             aria-invalid={Boolean(error)}
-            aria-describedby={error ? "message-composer-error" : "message-composer-hint"}
             className="block max-h-36 min-h-[46px] w-full resize-none bg-transparent px-4 pb-2 pt-3 text-xs leading-5 text-neutral-800 outline-none placeholder:text-neutral-400 disabled:cursor-not-allowed"
           />
 
           <div className="flex items-center justify-between gap-3 px-3 pb-2.5">
             <div className="flex min-w-0 items-center gap-1">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+                className="hidden"
+                onChange={(event) => {
+                  handleFiles(event.target.files);
+                  event.currentTarget.value = "";
+                }}
+              />
+
               <button
                 type="button"
-                disabled
-                title="Attachments are not available yet"
-                aria-label="Attachments unavailable"
-                className="flex h-7 w-7 cursor-not-allowed items-center justify-center rounded-md text-neutral-300"
+                disabled={isDisabled || attachments.length >= MAX_MESSAGE_ATTACHMENTS}
+                onClick={() => fileInputRef.current?.click()}
+                title={`Attach files (max ${MAX_MESSAGE_ATTACHMENTS}, 10 MB each)`}
+                aria-label="Attach files"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800 disabled:cursor-not-allowed disabled:text-neutral-300"
               >
                 <Paperclip size={15} />
               </button>
 
-              <button
-                type="button"
-                disabled
-                title="Emoji support is not available yet"
-                aria-label="Emoji unavailable"
-                className="flex h-7 w-7 cursor-not-allowed items-center justify-center rounded-md text-neutral-300"
-              >
-                <Smile size={15} />
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => setEmojiOpen((current) => !current)}
+                  title="Insert emoji"
+                  aria-label="Insert emoji"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800 disabled:cursor-not-allowed disabled:text-neutral-300"
+                >
+                  <Smile size={15} />
+                </button>
 
-              <span
-                id="message-composer-hint"
-                className="ml-1 hidden text-[10px] text-neutral-400 sm:inline"
-              >
+                {emojiOpen && (
+                  <div className="absolute bottom-9 left-0 z-30 grid w-64 grid-cols-8 gap-1 rounded-xl border border-neutral-200 bg-white p-2 shadow-xl">
+                    {EMOJIS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => insertEmoji(emoji)}
+                        className="flex h-7 w-7 items-center justify-center rounded-md text-base transition hover:bg-neutral-100"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <span className="ml-1 hidden text-[10px] text-neutral-400 sm:inline">
                 Enter to send · Shift + Enter for a new line
               </span>
             </div>
@@ -155,7 +302,10 @@ export const MessageComposer = ({
 
               <button
                 type="submit"
-                disabled={isDisabled || !content.trim()}
+                disabled={
+                  isDisabled ||
+                  (!content.trim() && attachments.length === 0)
+                }
                 className="inline-flex h-8 items-center justify-center gap-2 rounded-md bg-neutral-950 px-3 text-[11px] font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
               >
                 {sending ? (
@@ -176,7 +326,6 @@ export const MessageComposer = ({
 
         {error && (
           <p
-            id="message-composer-error"
             role="alert"
             className="mt-2 flex items-center gap-1.5 text-[11px] text-red-600"
           >
@@ -187,4 +336,4 @@ export const MessageComposer = ({
       </form>
     </div>
   );
-}
+};

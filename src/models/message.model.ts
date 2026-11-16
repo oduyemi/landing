@@ -1,4 +1,14 @@
-import mongoose, {Schema, Document, Types} from "mongoose";
+import mongoose, { Schema, Document, Types } from "mongoose";
+
+
+export interface IMessageAttachment {
+  url: string;
+  publicId: string;
+  name: string;
+  type: string;
+  size: number;
+  resourceType: "image" | "raw";
+}
 
 
 export interface IMessage extends Document {
@@ -9,6 +19,7 @@ export interface IMessage extends Document {
   sender: Types.ObjectId;
   recipient: Types.ObjectId;
   content: string;
+  attachments?: IMessageAttachment[];
   read: boolean;
   readAt?: Date;
   replyTo?: Types.ObjectId;
@@ -16,6 +27,48 @@ export interface IMessage extends Document {
   updatedAt: Date;
 }
 
+const messageAttachmentSchema = new Schema<IMessageAttachment>(
+  {
+    url: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    publicId: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    type: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    size: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    resourceType: {
+      type: String,
+      enum: ["image", "raw"],
+      required: true,
+    },
+  },
+  {
+    _id: false,
+  }
+);
 
 const messageSchema = new Schema<IMessage>(
   {
@@ -56,8 +109,13 @@ const messageSchema = new Schema<IMessage>(
 
     content: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
+    },
+
+    attachments: {
+      type: [messageAttachmentSchema],
+      default: undefined,
     },
 
     read: {

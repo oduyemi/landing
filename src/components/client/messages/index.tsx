@@ -26,6 +26,15 @@ export interface CurrentUser {
   role: "user" | "admin";
 }
 
+export interface ChatAttachment {
+  url: string;
+  publicId: string;
+  name: string;
+  type: string;
+  size: number;
+  resourceType: "image" | "raw";
+}
+
 export interface ConversationParticipant {
   _id: string;
   fname: string;
@@ -73,6 +82,7 @@ export interface ChatMessage {
   senderName: string;
   senderInitials: string;
   content: string;
+  attachments?: ChatAttachment[];
   timestamp: string;
   read: boolean;
   readAt?: string | null;
@@ -97,6 +107,7 @@ interface ApiConversation {
     sender: ConversationParticipant;
     recipient: ConversationParticipant;
     task?: ConversationTask | null;
+    attachments?: ChatAttachment[];
   };
   unreadCount: number;
 }
@@ -117,6 +128,7 @@ export interface ApiMessage {
   sender: ConversationParticipant;
   recipient: ConversationParticipant;
   content: string;
+  attachments?: ChatAttachment[];
   threadId: string;
   read: boolean;
   readAt?: string | null;
@@ -201,7 +213,13 @@ const normalizeConversation = (
     participant,
     participantRole: participant.role === "admin" ? "Admin" : "Client",
     participantInitials: getInitials(participant.fname, participant.lname),
-    lastMessage: lastMessage.content,
+    lastMessage:
+      lastMessage.content?.trim() ||
+      (lastMessage.attachments?.length
+        ? `📎 ${lastMessage.attachments.length} attachment${
+            lastMessage.attachments.length === 1 ? "" : "s"
+          }`
+        : "No message content"),
     lastMessageTime: formatConversationTime(lastMessage.createdAt),
     unread: conversation.unreadCount > 0,
     unreadCount: conversation.unreadCount,
@@ -218,7 +236,8 @@ const normalizeMessage = (message: ApiMessage): ChatMessage => {
     sender: sender.role === "admin" ? "admin" : "client",
     senderName: `${sender.fname} ${sender.lname}`.trim(),
     senderInitials: getInitials(sender.fname, sender.lname),
-    content: message.content,
+    content: message.content ?? "",
+    attachments: message.attachments ?? [],
     timestamp: formatMessageTime(message.createdAt),
     read: message.read,
     readAt: message.readAt,
@@ -439,27 +458,49 @@ export const MessagesDashboard = () => {
     setShowSidebar(false);
   }, []);
 
+  
   const handleSendMessage = useCallback(
-    async (content: string, replyTo?: string) => {
-      if (!selectedConversation || !content.trim()) return false;
+    async (
+      content: string,
+      attachments: File[] = [],
+      replyTo?: string
+    ) => {
+      if (
+        !selectedConversation ||
+        (!content.trim() && attachments.length === 0)
+      ) {
+        return false;
+      }
 
       try {
         setMessageError(null);
 
+        const formData = new FormData();
+
+        formData.append("projectId", selectedConversation.projectId);
+        formData.append(
+          "recipientId",
+          selectedConversation.participant._id
+        );
+        formData.append("content", content.trim());
+        formData.append("threadId", selectedConversation.threadId);
+
+        if (selectedConversation.taskId) {
+          formData.append("taskId", selectedConversation.taskId);
+        }
+
+        if (replyTo) {
+          formData.append("replyTo", replyTo);
+        }
+
+        attachments.forEach((file) => {
+          formData.append("attachments", file);
+        });
+
         const response = await fetch("/api/messages", {
           method: "POST",
           credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            projectId: selectedConversation.projectId,
-            recipientId: selectedConversation.participant._id,
-            content: content.trim(),
-            threadId: selectedConversation.threadId,
-            taskId: selectedConversation.taskId,
-            replyTo: replyTo || undefined,
-          }),
+          body: formData,
         });
 
         const data = await response.json();
@@ -475,6 +516,7 @@ export const MessagesDashboard = () => {
         }
 
         await fetchConversations();
+
         return true;
       } catch (error) {
         console.error("SEND MESSAGE ERROR:", error);

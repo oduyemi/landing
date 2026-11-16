@@ -1,3 +1,4 @@
+import "server-only";
 import mongoose from "mongoose";
 import Project from "@/models/project.model";
 import User from "@/models/user.model";
@@ -218,4 +219,29 @@ export async function validateMessageTask(
       status: 200,
       recipient,
     };
-  }
+}
+
+export const MAX_MESSAGE_ATTACHMENTS = 8;
+export const MAX_MESSAGE_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB
+
+export const ALLOWED_MESSAGE_MIME_TYPES = [
+  // Images
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+
+  // Documents
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/plain",
+  "text/csv",
+] as const;
+
+
+

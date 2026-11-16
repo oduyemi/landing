@@ -1,12 +1,30 @@
 
 "use client";
 import { useEffect, useMemo, useRef } from "react";
-import { ArrowLeft, Building2, Check, CheckCheck, MessageSquare, MoreHorizontal } from "lucide-react";
-import type { Conversation } from "./ConversationList";
+import {
+  ArrowLeft,
+  Building2,
+  Check,
+  CheckCheck,
+  MessageSquare,
+  MoreHorizontal,
+  FileText,
+  Download,
+} from "lucide-react";import type { Conversation } from "./ConversationList";
+
+export interface ThreadMessageAttachment {
+  url: string;
+  publicId: string;
+  name: string;
+  type: string;
+  size: number;
+  resourceType: "image" | "raw";
+}
 
 export interface ThreadMessage {
   _id: string;
   content: string;
+  attachments?: ThreadMessageAttachment[];
   sender: string | {
     _id: string;
     fname?: string;
@@ -79,6 +97,117 @@ function formatTime(value: string | Date) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function formatFileSize(bytes: number) {
+  if (!bytes || bytes <= 0) return "0 KB";
+
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function isImageAttachment(attachment: ThreadMessageAttachment) {
+  return (
+    attachment.resourceType === "image" ||
+    attachment.type.startsWith("image/")
+  );
+}
+
+function MessageAttachments({
+  attachments,
+  isOwnMessage,
+}: {
+  attachments: ThreadMessageAttachment[];
+  isOwnMessage: boolean;
+}) {
+  if (!attachments?.length) return null;
+
+  return (
+    <div className="mt-2 space-y-2">
+      {attachments.map((attachment, index) => {
+        const isImage = isImageAttachment(attachment);
+
+        return (
+          <div key={attachment.publicId || `${attachment.name}-${index}`}>
+            {isImage ? (
+              <a
+                href={attachment.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group block max-w-full overflow-hidden rounded-lg border border-white/10"
+                aria-label={`View ${attachment.name}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={attachment.url}
+                  alt={attachment.name}
+                  loading="lazy"
+                  className="max-h-72 max-w-full object-contain transition-opacity group-hover:opacity-90"
+                />
+                <div
+                  className={`flex items-center gap-2 px-2.5 py-2 text-[10px] ${
+                    isOwnMessage
+                      ? "bg-white/10 text-neutral-200"
+                      : "bg-neutral-100 text-neutral-600"
+                  }`}
+                >
+                  <span className="truncate">{attachment.name}</span>
+                  <span className="shrink-0">
+                    {formatFileSize(attachment.size)}
+                  </span>
+                </div>
+              </a>
+            ) : (
+              <a
+                href={attachment.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                download={attachment.name}
+                className={`flex min-w-0 items-center gap-3 rounded-lg border p-3 transition ${
+                  isOwnMessage
+                    ? "border-white/15 bg-white/10 hover:bg-white/15"
+                    : "border-neutral-200 bg-white hover:bg-neutral-100"
+                }`}
+              >
+                <div
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                    isOwnMessage
+                      ? "bg-white/10 text-white"
+                      : "bg-neutral-100 text-neutral-600"
+                  }`}
+                >
+                  <FileText size={17} />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[11px] font-medium">
+                    {attachment.name}
+                  </p>
+                  <p
+                    className={`mt-0.5 text-[10px] ${
+                      isOwnMessage
+                        ? "text-neutral-300"
+                        : "text-neutral-500"
+                    }`}
+                  >
+                    {formatFileSize(attachment.size)}
+                  </p>
+                </div>
+
+                <Download
+                  size={15}
+                  className="shrink-0 opacity-70"
+                />
+              </a>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function formatDateDivider(value: string | Date) {
@@ -439,15 +568,24 @@ export const MessageThread = ({
                       </div>
 
                       <div
-                        className={`rounded-2xl px-3.5 py-2.5 text-xs leading-[1.7] sm:px-4 ${
+                        className={`max-w-full rounded-2xl px-3.5 py-2.5 text-xs leading-[1.7] sm:px-4 ${
                           isOwnMessage
                             ? "rounded-br-md bg-neutral-950 text-white"
                             : "rounded-bl-md border border-neutral-200 bg-neutral-50 text-neutral-800"
                         }`}
                       >
-                        <p className="whitespace-pre-wrap break-words">
-                          {message.content}
-                        </p>
+                        {message.content?.trim() && (
+                          <p className="whitespace-pre-wrap break-words">
+                            {message.content}
+                          </p>
+                        )}
+
+                        {message.attachments && message.attachments.length > 0 && (
+                          <MessageAttachments
+                            attachments={message.attachments}
+                            isOwnMessage={isOwnMessage}
+                          />
+                        )}
                       </div>
 
                       {isOwnMessage && (

@@ -168,4 +168,45 @@ export async function uploadProjectImage(
   });
 }
 
+export const uploadMessageAttachment = async (
+  buffer: Buffer,
+  options: {
+    userId: string;
+    originalFilename: string;
+    mimeType: string;
+  }
+): Promise<{
+  url: string;
+  publicId: string;
+  resourceType: "image" | "raw";
+  originalName: string;
+  mimeType: string;
+  size: number;
+  format: string;
+}> => {
+  const isImage = options.mimeType.startsWith("image/");
+
+  const resourceType: "image" | "raw" = isImage
+    ? "image"
+    : "raw";
+
+  const folder = `portal/projects/messages/${options.userId}`;
+
+  const result = await uploadToCloudinary(buffer, {
+    folder,
+    resourceType,
+    originalFilename: options.originalFilename,
+  });
+
+  return {
+    url: result.secure_url,
+    publicId: result.public_id,
+    resourceType,
+    originalName: options.originalFilename,
+    mimeType: options.mimeType,
+    size: result.bytes,
+    format: result.format,
+  };
+};
+
 export default cloudinary;

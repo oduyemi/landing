@@ -96,7 +96,6 @@ export const AdminMessages = ({currentUserId}: AdminMessagesProps) => {
   const [newMessageRecipients, setNewMessageRecipients] = useState<NewMessageRecipient[]>([]);
   const [newMessageProjectId, setNewMessageProjectId] = useState("");
   const [newMessageRecipientId, setNewMessageRecipientId] = useState("");
-  const [newMessageContent, setNewMessageContent] = useState("");
   const [loadingComposeOptions, setLoadingComposeOptions] = useState(false);
   const [sendingNewMessage, setSendingNewMessage] = useState(false);
   const [newMessageError, setNewMessageError] = useState("");
@@ -132,7 +131,13 @@ export const AdminMessages = ({currentUserId}: AdminMessagesProps) => {
           clientId: participant._id,
           clientName: getFullName(participant),
           clientImage: participant.image ?? null,
-          lastMessage: lastMessage.content,
+          lastMessage:
+            lastMessage.content?.trim() ||
+            (lastMessage.attachments?.length
+              ? `📎 ${lastMessage.attachments.length} attachment${
+                  lastMessage.attachments.length === 1 ? "" : "s"
+                }`
+              : "No message content"),
           lastMessageAt: lastMessage.createdAt,
           unreadCount: item.unreadCount ?? 0,
           lastMessageSenderId: getId(lastMessage.sender),
@@ -169,7 +174,6 @@ export const AdminMessages = ({currentUserId}: AdminMessagesProps) => {
   const openNewMessage = useCallback(async () => {
     setNewMessageOpen(true);
     setNewMessageError("");
-    setNewMessageContent("");
     setNewMessageProjectId("");
     setNewMessageRecipientId("");
     setLoadingComposeOptions(true);
@@ -257,88 +261,81 @@ export const AdminMessages = ({currentUserId}: AdminMessagesProps) => {
     }
   }, []);
 
-  const handleSendNewMessage = useCallback(async () => {
-    setNewMessageError("");
   
-    if (!newMessageProjectId) {
-      setNewMessageError("Please select a project.");
-      return;
-    }
-  
-    if (!newMessageRecipientId) {
-      setNewMessageError("Please select a client.");
-      return;
-    }
-  
-    const content = newMessageContent.trim();
-  
-    if (!content) {
-      setNewMessageError("Please enter a message.");
-      return;
-    }
-  
-    if (content.length > 5000) {
-      setNewMessageError("Your message cannot exceed 5000 characters.");
-      return;
-    }
-  
-    setSendingNewMessage(true);
-  
-    try {
-      const response = await fetch("/api/messages", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          projectId: newMessageProjectId,
-          recipientId: newMessageRecipientId,
-          content,
-        }),
+  const handleSendNewMessage = useCallback(
+    async (content: string, attachments: File[]) => {
+      if (!newMessageProjectId) {
+        throw new Error("Please select a project.");
+      }
+
+      if (!newMessageRecipientId) {
+        throw new Error("Please select a client.");
+      }
+
+      const messageContent = content.trim();
+
+      if (!messageContent && attachments.length === 0) {
+        throw new Error("Write a message or attach a file.");
+      }
+
+      if (messageContent.length > 5000) {
+        throw new Error("Your message cannot exceed 5000 characters.");
+      }
+
+      const formData = new FormData();
+
+      formData.append("projectId", newMessageProjectId);
+      formData.append("recipientId", newMessageRecipientId);
+      formData.append("content", messageContent);
+
+      attachments.forEach((file) => {
+        formData.append("attachments", file);
       });
-  
-      const data = await response.json();
-  
-      if (!response.ok || !data.success) {
-        throw new Error(
-          getErrorMessage(data, "Unable to send your message.")
-        );
+
+      setSendingNewMessage(true);
+
+      try {
+        const response = await fetch("/api/messages", {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(
+            getErrorMessage(data, "Unable to send your message.")
+          );
+        }
+
+        const sentMessage = data.message as ApiMessage;
+
+        setNewMessageOpen(false);
+            setNewMessageProjectId("");
+        setNewMessageRecipientId("");
+
+        await loadConversations();
+
+        if (sentMessage.threadId) {
+          setSelectedKey(
+            `${newMessageProjectId}:${sentMessage.threadId}`
+          );
+        } else {
+          setSelectedKey(null);
+        }
+
+        setRefreshKey((value) => value + 1);
+      } finally {
+        setSendingNewMessage(false);
       }
-  
-      const sentMessage = data.message as ApiMessage;
-      const threadId = sentMessage.threadId;
-  
-      setNewMessageOpen(false);
-      setNewMessageContent("");
-      setNewMessageProjectId("");
-      setNewMessageRecipientId("");
-  
-      // Refresh the inbox, then select the newly created conversation.
-      await loadConversations();
-  
-      if (threadId) {
-        setSelectedKey(`${newMessageProjectId}:${threadId}`);
-      } else {
-        setSelectedKey(null);
-      }
-  
-      setRefreshKey((value) => value + 1);
-    } catch (error) {
-      setNewMessageError(
-        error instanceof Error
-          ? error.message
-          : "Unable to send your message."
-      );
-    } finally {
-      setSendingNewMessage(false);
-    }
-  }, [
-    newMessageProjectId,
-    newMessageRecipientId,
-    newMessageContent,
-    loadConversations,
-  ]);
+    },
+    [
+      newMessageProjectId,
+      newMessageRecipientId,
+      loadConversations,
+    ]
+  );
 
   const handleMarkRead = useCallback(async (messageId: string) => {
     const target = messages.find(
@@ -515,52 +512,55 @@ export const AdminMessages = ({currentUserId}: AdminMessagesProps) => {
   );
 
   const handleSend = useCallback(
-    async (content: string) => {
+    async (content: string, attachments: File[]) => {
       if (!selectedConversation) {
         throw new Error("Select a conversation before sending a message.");
       }
-
+  
       const recipientId = selectedConversation.clientId;
-
+  
       if (!recipientId) {
         throw new Error("The recipient for this conversation is missing.");
       }
-
+  
       setSending(true);
-
+  
       try {
+        const formData = new FormData();
+  
+        formData.append("projectId", selectedConversation.projectId);
+        formData.append("recipientId", recipientId);
+        formData.append("content", content);
+        formData.append("threadId", selectedConversation.threadId);
+  
+        attachments.forEach((file) => {
+          formData.append("attachments", file);
+        });
+  
         const response = await fetch("/api/messages", {
           method: "POST",
           credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            projectId: selectedConversation.projectId,
-            recipientId,
-            content,
-            threadId: selectedConversation.threadId,
-          }),
+          body: formData,
         });
-
+  
         const data = await response.json();
-
+  
         if (!response.ok || !data.success) {
           throw new Error(
             getErrorMessage(data, "Unable to send your message.")
           );
         }
-
+  
         const sentMessage = data.message as ApiMessage;
-
+  
         setMessages((current) => {
           if (current.some((item) => item._id === sentMessage._id)) {
             return current;
           }
-
+  
           return [...current, sentMessage];
         });
-
+  
         await loadConversations();
       } finally {
         setSending(false);
@@ -962,75 +962,28 @@ export const AdminMessages = ({currentUserId}: AdminMessagesProps) => {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <label
-                  htmlFor="new-message-content"
-                  className="text-sm font-semibold text-slate-700"
-                >
-                  Message
-                </label>
+              <label className="text-sm font-semibold text-slate-700">
+                Message
+              </label>
 
-                <span className="text-xs tabular-nums text-slate-400">
-                  {newMessageContent.length}/5000
-                </span>
-              </div>
-
-              <textarea
-                id="new-message-content"
-                value={newMessageContent}
-                onChange={(event) => {
-                  setNewMessageContent(event.target.value);
-                  setNewMessageError("");
-                }}
-                placeholder="Write your message to the client..."
-                rows={5}
+              <MessageComposer
+                onSend={handleSendNewMessage}
+                sending={sendingNewMessage}
+                disabled={
+                  loadingComposeOptions ||
+                  !newMessageProjectId ||
+                  !newMessageRecipientId
+                }
                 maxLength={5000}
-                disabled={sendingNewMessage}
-                className="w-full resize-y rounded-xl border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-black-400 focus:ring-4 focus:ring-black-50 disabled:bg-slate-50"
+                placeholder="Write your first message to the client..."
               />
             </div>
           </>
         )}
-
-        <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            onClick={() => setNewMessageOpen(false)}
-            disabled={sendingNewMessage}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            onClick={() => void handleSendNewMessage()}
-            disabled={
-              loadingComposeOptions ||
-              sendingNewMessage ||
-              !newMessageProjectId ||
-              !newMessageRecipientId ||
-              !newMessageContent.trim()
-            }
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-black px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-black/70 focus:outline-none focus:ring-4 focus:ring-black-100 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {sendingNewMessage ? (
-              <>
-                <RefreshCw size={15} className="animate-spin" />
-                Sending...
-              </>
-            ) : (
-              <>
-                <ArrowRight size={16} />
-                Send message
-              </>
-            )}
-          </button>
-        </div>
       </div>
     </div>
   </div>
 )}
     </section>
   );
-}
+};

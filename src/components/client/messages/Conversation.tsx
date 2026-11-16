@@ -11,6 +11,7 @@ interface ConversationProps {
   currentUserId?: string;
   onSendMessage: (
     content: string,
+    attachments?: File[],
     replyTo?: string
   ) => Promise<boolean>;
 }
